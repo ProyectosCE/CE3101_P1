@@ -1,4 +1,5 @@
 ﻿using CEDigital_api.Models.Mongo;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -14,5 +15,7 @@ namespace CEDigital_api.Data.Mongo
             var database = client.GetDatabase(settings.Value.DatabaseName);
             _estudiantes = database.GetCollection<Estudiante>("estudiantes");
         }
+
+        // Agregar metodos despues
     }
 }
