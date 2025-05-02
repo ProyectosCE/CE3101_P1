@@ -16,6 +16,23 @@ namespace CEDigital_api.Data.Mongo
             _estudiantes = database.GetCollection<Estudiante>("estudiantes");
         }
 
-        // Agregar metodos despues
+        // Obtener todos los estudiantes
+        public async Task<List<Estudiante>> GetAllAsync()
+        {
+            return await _estudiantes.Find(_ => true).ToListAsync();
+        }
+
+        // Modificar un estudiante por carnet
+        public async Task UpdateAsync(string carnet, Estudiante estudianteActualizado)
+        {
+            await _estudiantes.ReplaceOneAsync(e => e.carnet == carnet, estudianteActualizado);
+        }
+
+        // Eliminar un estudiante por carnet
+        public async Task DeleteAsync(string carnet)
+        {
+            await _estudiantes.DeleteOneAsync(e => e.carnet == carnet);
+        }
+
     }
 }
