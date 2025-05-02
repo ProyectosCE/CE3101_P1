@@ -7,12 +7,12 @@ namespace CEDigital_api.Models.Mongo
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; }
+        public string? Id { get; set; }
 
         public string cedula { get; set; }
         public string nombre { get; set; }
-        public string apellido1 { get; set; }
-        public string apellido2 { get; set; }
+        public string apellidos { get; set; }
+        public string nombre_completo => $"{nombre} {apellidos}".Trim();
         public string correo { get; set; }
         public string password { get; set; }
     }
