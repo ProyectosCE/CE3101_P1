@@ -2,5 +2,10 @@
 {
     public class Entregable
     {
+        public int id_entregable { get; set; }
+        public string archivo { get; set; }
+        public DateOnly fecha { get; set; }
+        public TimeOnly hora { get; set; }
+        public string entrega => fecha.ToString("yyyy-MM-dd") + " " + hora.ToString("hh\\:mm\\:ss");
     }
 }
