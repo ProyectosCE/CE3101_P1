@@ -10,5 +10,12 @@
         public string entrega => fecha.ToString("yyyy-MM-dd") + " " + hora.ToString("hh\\:mm\\:ss");
         public string tipo { get; set; }
         public string archivo_especificacion { get; set; }
+
+        public List<Entregable> entregables { get; set; } = new();
+
+        // Foreign Keys
+        public int id_rubro { get; set; }
+        public Rubro? rubro { get; set; }
+
     }
 }

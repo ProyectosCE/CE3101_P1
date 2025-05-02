@@ -7,5 +7,15 @@
         public DateOnly fecha { get; set; }
         public TimeOnly hora { get; set; }
         public string entrega => fecha.ToString("yyyy-MM-dd") + " " + hora.ToString("hh\\:mm\\:ss");
+
+        public List<Nota> notas { get; set; } = new();
+
+        // Foreign Keys
+        public int id_evaluacion { get; set; }
+        public Evaluacion? evaluacion { get; set; }
+        public string carnet_estudiante { get; set; }
+
+
+
     }
 }

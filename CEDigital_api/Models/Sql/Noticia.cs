@@ -6,5 +6,10 @@
         public string titulo { get; set; }
         public DateTime fecha_publicacion { get; set; }
         public string mensaje { get; set; }
+
+        // Foreign Keys
+        public int id_grupo { get; set; }
+        public Grupo? grupo { get; set; }
+        public string cedula_profesor { get; set; }
     }
 }
