@@ -2,5 +2,7 @@
 {
     public class Grupo
     {
+        public int id_grupo { get; set; }
+        public int numero_grupo { get; set; }
     }
 }
