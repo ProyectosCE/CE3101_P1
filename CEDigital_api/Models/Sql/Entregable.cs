@@ -8,7 +8,7 @@
         public TimeOnly hora { get; set; }
         public string entrega => fecha.ToString("yyyy-MM-dd") + " " + hora.ToString("hh\\:mm\\:ss");
 
-        public List<Nota> notas { get; set; } = new();
+        public Nota? nota { get; set; } = new(); // 1 a 1
 
         // Foreign Keys
         public int id_evaluacion { get; set; }

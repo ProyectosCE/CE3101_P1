@@ -3,7 +3,7 @@
     public class GrupoXEstudiante
     {
         // Foreign Keys
-        public string cedula_estudiante { get; set; }
+        public string carnet_estudiante { get; set; }
         public int id_grupo { get; set; }
         public Grupo? grupo { get; set; }
     }
