@@ -5,6 +5,10 @@ namespace CEDigital_api.Models.Mongo
 {
     public class Estudiante
     {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
+
         public string carnet { get; set; }
         public string cedula { get; set; }
         public string nombre { get; set; }

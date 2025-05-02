@@ -22,6 +22,12 @@ namespace CEDigital_api.Data.Mongo
             return await _estudiantes.Find(_ => true).ToListAsync();
         }
 
+        // Crear un nuevo estudiante
+        public async Task CreateAsync(Estudiante nuevoEstudiante)
+        {
+            await _estudiantes.InsertOneAsync(nuevoEstudiante);
+        }
+
         // Modificar un estudiante por carnet
         public async Task UpdateAsync(string carnet, Estudiante estudianteActualizado)
         {
