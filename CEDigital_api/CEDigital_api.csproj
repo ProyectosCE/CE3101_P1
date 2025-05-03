@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <Folder Include="Controllers\Sql\" />
-    <Folder Include="Data\Sql\" />
   </ItemGroup>
 
 </Project>

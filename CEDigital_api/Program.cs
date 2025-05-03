@@ -1,4 +1,6 @@
 using CEDigital_api.Data.Mongo;
+using CEDigital_api.Data.Sql;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,10 @@ builder.Services.Configure<MongoDbSettings>(
 
 builder.Services.AddSingleton<ProfesorService>();
 builder.Services.AddSingleton<EstudianteService>();
+
+// SQL Server
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
