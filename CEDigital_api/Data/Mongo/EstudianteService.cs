@@ -40,5 +40,36 @@ namespace CEDigital_api.Data.Mongo
             await _estudiantes.DeleteOneAsync(e => e.carnet == carnet);
         }
 
+        // Obtener estudiante por cédula
+        public async Task<Estudiante> GetByCedulaAsync(string cedula)
+        {
+            return await _estudiantes.Find(e => e.cedula == cedula).FirstOrDefaultAsync();
+        }
+
+        // Obtener estudiantes por nombre 
+        public async Task<List<Estudiante>> GetByNombreAsync(string nombre)
+        {
+            return await _estudiantes.Find(e => e.nombre.ToLower().Contains(nombre.ToLower())).ToListAsync();
+        }
+
+        // Validar login (encriptacion por implemntar)
+        public async Task<bool> ValidateLoginAsync(string cedula, string password)
+        {
+            var estudiante = await _estudiantes.Find(e => e.cedula == cedula && e.password == password).FirstOrDefaultAsync();
+            return estudiante != null;
+        }
+
+        // Verificar si carnet ya existe 
+        public async Task<bool> CarnetExistsAsync(string carnet)
+        {
+            var count = await _estudiantes.CountDocumentsAsync(e => e.carnet == carnet);
+            return count > 0;
+        }
+
+        //Obtener cantidad total de estudiantes
+        public async Task<long> GetTotalCountAsync()
+        {
+            return await _estudiantes.CountDocumentsAsync(_ => true);
+        }
     }
 }
