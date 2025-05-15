@@ -1,0 +1,121 @@
+/* src/styles/components/professor.css */
+
+/* --- Curso Selection --- */
+.professor-courses {
+  background: #ffffff;
+  min-height: 100vh;
+  padding: 2rem;
+  color: #000000;
+}
+
+/* Logo en la cabecera de cursos */
+.professor-courses-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.professor-courses-header .professor-logo {
+  max-width: 180px;
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
+}
+
+
+/* Card de semestre */
+.semester-card {
+  margin-bottom: 1rem;
+  border: 1px solid #dddddd;
+  border-radius: .5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Header clickeable */
+.semester-card-header {
+  padding: .75rem 1.25rem;
+  background: #FAFAFF;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+
+.semester-card-header:hover {
+  background: #eef2ff;
+}
+
+/* Body colapsable */
+.semester-card-body {
+  padding: 1rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.course-item a {
+  display: block;
+  padding: .5rem 0;
+  color: #0000ff;
+  text-decoration: none;
+  transition: color .2s;
+}
+
+.course-item a:hover {
+  color: #0044cc;
+}
+
+/* --- Dashboard --- */
+.professor-dashboard {
+  background: #ffffff;
+  min-height: 100vh;
+  padding: 2rem;
+  color: #000000;
+}
+
+.professor-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.professor-logo {
+  max-width: 120px;
+  margin-right: 1rem;
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
+}
+
+.professor-title {
+  font-size: 2rem;
+  margin: 0;
+}
+
+/* Secciones envueltas en Card */
+.professor-content .card {
+  margin-bottom: 2rem;
+  border: none;
+  border-radius: .75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.professor-content .card-header {
+  background: #FAFAFF;
+  font-weight: 500;
+  color: #000000;
+}
+
+.professor-content .card-body {
+  background: #ffffff;
+}
+
+/* Tab activo y hover */
+.professor-tabs .nav-link {
+  color: #0000ff;
+}
+.professor-tabs .nav-link.active {
+  background: transparent;
+  border-bottom: 2px solid #0000ff;
+}
+
+/* Botones */
+.professor-content .btn {
+  border-radius: .5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
