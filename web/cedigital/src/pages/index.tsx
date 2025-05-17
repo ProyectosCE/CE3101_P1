@@ -3,12 +3,17 @@ import React from 'react'
 import Link from 'next/link'
 
 const Home: React.FC = () => (
-  <div className="container py-5 text-center">
-    <h1>CEDigital</h1>
-    <p>Bienvenido, por favor inicie sesión:</p>
-    <Link href="/login" className="btn btn-primary">
-      Ir a Login
-    </Link>
+  <div className="home-wrapper">
+    <div className="home-card">
+      <img
+        src="/images/LogoTransparente.png"
+        alt="CEDigital Logo"
+        className="home-logo"
+      />
+      <Link href="/login" className="home-button">
+        Ir a Login
+      </Link>
+    </div>
   </div>
 )
 

@@ -1,68 +1,4 @@
-/* src/styles/components/professor.css */
-
-/* --- Curso Selection --- */
-.professor-courses {
-  background: #ffffff;
-  min-height: 100vh;
-  padding: 2rem;
-  color: #000000;
-}
-
-/* Logo en la cabecera de cursos */
-.professor-courses-header {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 2rem;
-}
-
-.professor-courses-header .professor-logo {
-  max-width: 180px;
-  filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
-}
-
-
-/* Card de semestre */
-.semester-card {
-  margin-bottom: 1rem;
-  border: 1px solid #dddddd;
-  border-radius: .5rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-/* Header clickeable */
-.semester-card-header {
-  padding: .75rem 1.25rem;
-  background: #FAFAFF;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 500;
-}
-
-.semester-card-header:hover {
-  background: #eef2ff;
-}
-
-/* Body colapsable */
-.semester-card-body {
-  padding: 1rem;
-  border-top: 1px solid #e5e5e5;
-}
-
-.course-item a {
-  display: block;
-  padding: .5rem 0;
-  color: #0000ff;
-  text-decoration: none;
-  transition: color .2s;
-}
-
-.course-item a:hover {
-  color: #0044cc;
-}
-
-/* --- Dashboard --- */
+/* --- Dashboard Profesor --- */
 .professor-dashboard {
   background: #ffffff;
   min-height: 100vh;
@@ -70,52 +6,125 @@
   color: #000000;
 }
 
+/* HEADER: compactado y con degradado */
 .professor-header {
+  position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
+  justify-content: center; /* logo centrado */
+  background: linear-gradient(90deg, #FAFAFF 0%, #EFF4FF 100%);
+  padding: 1rem 0;         /* menos espacio vertical */
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
+/* LOGO */
 .professor-logo {
-  max-width: 120px;
-  margin-right: 1rem;
+  max-width: 140px;
   filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
 }
 
+/* TÍTULO “Profesor” en esquina superior derecha */
 .professor-title {
-  font-size: 2rem;
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 1rem;
+  color: #0000ff;
+  text-transform: capitalize;
   margin: 0;
+  font-weight: 500;
 }
 
-/* Secciones envueltas en Card */
-.professor-content .card {
-  margin-bottom: 2rem;
+/* PESTAÑAS */
+.professor-tabs .nav-link {
+  color: #0000ff;
+  background: transparent;
   border: none;
-  border-radius: .75rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-bottom: 2px solid transparent;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+.professor-tabs .nav-link:hover {
+  background-color: rgba(0, 0, 255, 0.1);
+}
+.professor-tabs .nav-link.active {
+  color: #0000ff;
+  border-bottom: 2px solid #0000ff;
 }
 
+/* CONTENIDO */
+.professor-content .card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
 .professor-content .card-header {
   background: #FAFAFF;
   font-weight: 500;
   color: #000000;
 }
-
 .professor-content .card-body {
   background: #ffffff;
+  padding: 2rem;
 }
 
-/* Tab activo y hover */
-.professor-tabs .nav-link {
-  color: #0000ff;
-}
-.professor-tabs .nav-link.active {
-  background: transparent;
-  border-bottom: 2px solid #0000ff;
-}
-
-/* Botones */
+/* BOTONES */
 .professor-content .btn {
-  border-radius: .5rem;
+  border-radius: 0.5rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* --- Curso Selection --- */
+.professor-courses {
+  background: #ffffff;
+  min-height: calc(100vh - 2rem);
+  padding: 2rem;
+  color: #000000;
+}
+/* Cabecera con logo */
+.professor-courses-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+.professor-courses-header .professor-logo {
+  max-width: 160px;
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
+}
+
+/* Semestre cards */
+.semester-card {
+  margin-bottom: 1rem;
+  border: 1px solid #dddddd;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.semester-card-header {
+  padding: 0.75rem 1.25rem;
+  background: #FAFAFF;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+.semester-card-header:hover {
+  background: #eef2ff;
+}
+.semester-card-body {
+  padding: 1rem;
+  border-top: 1px solid #e5e5e5;
+}
+.course-item a {
+  display: block;
+  padding: 0.5rem 0;
+  color: #0000ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+.course-item a:hover {
+  color: #0044cc;
 }

@@ -1,3 +1,4 @@
+// src/pages/student/dashboard.tsx
 import React, { useState } from 'react'
 import type { NextPage } from 'next'
 import DocumentViewer     from '../../components/student/DocumentViewer'
@@ -24,17 +25,17 @@ const StudentDashboard: NextPage = () => {
   }
 
   return (
-    <div className="professor-dashboard">
-      <header className="professor-header">
+    <div className="student-dashboard">
+      <header className="student-header">
         <img
           src="/images/LogoTransparente.png"
           alt="CEDigital Logo"
-          className="professor-logo"
+          className="student-logo"
         />
-        <h1 className="professor-title">Vista Estudiante</h1>
+        <span className="student-title">Estudiante</span>
       </header>
 
-      <ul className="nav nav-tabs professor-tabs mb-4">
+      <ul className="nav nav-tabs student-tabs mb-4">
         {tabs.map(t => (
           <li key={t.key} className="nav-item">
             <button
@@ -47,7 +48,7 @@ const StudentDashboard: NextPage = () => {
         ))}
       </ul>
 
-      <div className="professor-content">
+      <div className="student-content">
         <div className="card">
           <div className="card-header">
             {tabs.find(t => t.key === active)!.label}

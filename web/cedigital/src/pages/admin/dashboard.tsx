@@ -14,7 +14,7 @@ const AdminDashboard: React.FC = () => {
           alt="CEDigital Logo"
           className="admin-logo"
         />
-        <h1 className="admin-title">Vista Administrador</h1>
+        <span className="admin-title">Administrador</span>
       </header>
 
       <ul className="nav nav-tabs admin-tabs mb-4">

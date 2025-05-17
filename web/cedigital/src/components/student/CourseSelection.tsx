@@ -17,7 +17,6 @@ const CourseSelection: React.FC = () => {
   const [openMap, setOpenMap] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
-    // TODO: fetch('/api/student/semesters') → setSemesters(data)
   }, [])
 
   const toggle = (i: number) =>

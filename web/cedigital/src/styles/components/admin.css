@@ -1,35 +1,43 @@
-/* Contenedor principal: fondo blanco, texto negro */
+/* Contenedor principal */
 .admin-dashboard {
   background: #ffffff;
   min-height: 100vh;
   padding: 2rem;
-  color: #000000; /* texto por defecto en negro */
+  color: #000000;
 }
 
-/* HEADER */
+/* HEADER: sección más compacta */
 .admin-header {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center; /* logo centrado */
   margin-bottom: 2rem;
+  background: linear-gradient(90deg, #FAFAFF 0%, #EFF4FF 100%);
+  padding: 1rem 0; /* reducción de padding vertical */
+  border-radius: 0.75rem;
 }
 
-/* LOGO */
+/* TÍTULO “Administrador” esquina superior derecha */
+.admin-title {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 1rem;         /* ligeramente pequeño */
+  margin: 0;
+  color: #0000ff;          /* azul coherente */
+  text-transform: capitalize;
+}
+
+/* LOGO más pequeño para compensar */
 .admin-logo {
-  max-width: 150px;
-  margin-right: 1rem;
+  max-width: 140px;        /* reducción de tamaño */
   filter: drop-shadow(0 0 8px rgba(0,0,0,0.2));
 }
 
-/* TÍTULO */
-.admin-title {
-  font-size: 2.5rem;
-  margin: 0;
-  color: #000000; /* título principal negro */
-}
-
-/* PESTAÑAS: sólo estas letras en azul */
+/* PESTAÑAS */
 .admin-tabs .nav-link {
-  color: #0000ff;               /* pestañas azules */
+  color: #0000ff;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -37,26 +45,23 @@
   padding: 0.75rem 1.5rem;
   transition: all 0.3s ease;
 }
-
 .admin-tabs .nav-link:hover {
   background-color: rgba(0, 0, 255, 0.1);
 }
-
 .admin-tabs .nav-link.active {
-  color: #0000ff;               /* pestaña activa azul */
+  color: #0000ff;
   border-bottom: 2px solid #0000ff;
 }
 
-/* CONTENIDO: fondo claro, texto negro */
+/* CONTENIDO */
 .admin-content {
   background: #FAFAFF;
   padding: 1.5rem;
   border-radius: 1rem;
   box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  color: #000000; /* asegúrate de texto negro */
+  color: #000000;
 }
-
-/* Encabezados dentro del contenido (p.ej. h2 “Gestión de Cursos”) en negro */
+/* Encabezados dentro */
 .admin-content h1,
 .admin-content h2,
 .admin-content h3,
@@ -66,7 +71,7 @@
   color: #000000;
 }
 
-/* BOTONES: colores de fondo según paleta, texto blanco */
+/* BOTONES */
 .btn-primary {
   background-color: #0000ff !important;
   border-color: #0000ff !important;
@@ -76,25 +81,22 @@
   background-color: #0000dd !important;
   border-color: #0000dd !important;
 }
-
 .btn-secondary {
   background-color: #5555ff !important;
   border-color: #5555ff !important;
   color: #ffffff !important;
 }
 
-/* TABLA: encabezados con fondo claro, texto negro */
+/* TABLA */
 .admin-content .table thead th {
   background-color: #ddddff !important;
   color: #000000 !important;
 }
-
-/* FILAS ALTERNAS */
 .admin-content .table-striped > tbody > tr:nth-of-type(odd) {
   background-color: rgba(0,0,255,0.05) !important;
 }
 
-/* FORMULARIOS: texto y bordes en negro/azul */
+/* FORMULARIOS */
 .form-control,
 .form-select {
   background-color: #ffffff !important;

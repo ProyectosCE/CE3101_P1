@@ -1,0 +1,86 @@
+/* src/styles/components/student.css */
+
+/* --- Contenedor principal --- */
+.student-dashboard {
+  background: #ffffff;
+  min-height: 100vh;
+  padding: 2rem;
+  color: #000000;
+}
+
+/* --- Header compacto con degradado y logo centrado --- */
+.student-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #FAFAFF 0%, #EFF4FF 100%);
+  padding: 1rem 0;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Logo */
+.student-logo {
+  max-width: 140px;
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.1));
+}
+
+/* “Estudiante” esquina superior derecha en azul */
+.student-title {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 1rem;
+  color: #0000ff;
+  text-transform: capitalize;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* --- Pestañas --- */
+.student-tabs .nav-link {
+  color: #0000ff;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+.student-tabs .nav-link:hover {
+  background-color: rgba(0, 0, 255, 0.1);
+}
+.student-tabs .nav-link.active {
+  color: #0000ff;
+  border-bottom: 2px solid #0000ff;
+}
+
+/* --- Tarjeta de contenido --- */
+.student-content .card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+.student-content .card-header {
+  background: #FAFAFF;
+  font-weight: 500;
+  color: #000000;
+}
+.student-content .card-body {
+  background: #ffffff;
+  padding: 2rem;
+}
+
+/* --- Botones con esquinas redondeadas y sombra suave --- */
+.student-content .btn {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* --- Separadores opcionales --- */
+.student-content hr {
+  border-top: 1px solid rgba(0,0,0,0.1);
+  margin: 2rem 0;
+}

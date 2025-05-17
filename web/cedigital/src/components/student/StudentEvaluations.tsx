@@ -31,8 +31,7 @@ const StudentEvaluations: React.FC = () => {
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    // TODO: fetch `/api/student/evaluations?course=…`
-    //      setRubros(data)
+
   }, [])
 
   const toggle = (id: string) =>
@@ -65,7 +64,6 @@ const StudentEvaluations: React.FC = () => {
           : r
       )
     )
-    // TODO: POST a backend
   }
 
   const handleUndo = (rubroId: string, evalId: string) => () => {
@@ -89,7 +87,7 @@ const StudentEvaluations: React.FC = () => {
           : r
       )
     )
-    // TODO: DELETE en backend
+
   }
 
   const handleDownload = (fileUrl?: string, fileName?: string) => {

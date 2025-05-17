@@ -2,10 +2,10 @@
 import React, { useState } from 'react'
 import type { NextPage } from 'next'
 import DocumentManager from '../../components/professor/DocumentManager'
-import RubricManager from '../../components/professor/RubricManager'
-import NewsEditor from '../../components/professor/NewsEditor'
-import ReportNotes from '../../components/professor/ReportNotes'
-import ReportStudents from '../../components/professor/ReportStudents'
+import RubricManager   from '../../components/professor/RubricManager'
+import NewsEditor      from '../../components/professor/NewsEditor'
+import ReportNotes     from '../../components/professor/ReportNotes'
+import ReportStudents  from '../../components/professor/ReportStudents'
 
 const tabs = [
   { key: 'docs',     label: 'Gestión de Documentos' },
@@ -38,7 +38,7 @@ const ProfessorDashboard: NextPage = () => {
           alt="CEDigital Logo"
           className="professor-logo"
         />
-        <h1 className="professor-title">Vista Profesor</h1>
+        <span className="professor-title">Profesor</span>
       </header>
 
       <ul className="nav nav-tabs professor-tabs mb-4">
