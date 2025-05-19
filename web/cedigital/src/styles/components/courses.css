@@ -1,0 +1,16 @@
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.semester-section {
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.semester-section:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}

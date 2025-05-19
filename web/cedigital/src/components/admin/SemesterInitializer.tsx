@@ -1,55 +1,52 @@
 // src/components/admin/SemesterInitializer.tsx
 import React, { useState } from 'react'
 
-interface CourseEntry {
-  code: string
-  group: string
+interface Semester {
+  id: string
+  year: number
+  period: '1' | '2' | 'V'
+  active: boolean
 }
 
 const SemesterInitializer: React.FC = () => {
-  const [formCourses, setFormCourses] = useState<CourseEntry[]>([])
-  const [semesterCourses, setSemesterCourses] = useState<CourseEntry[]>([])
   const [year, setYear] = useState<number | ''>('')
   const [period, setPeriod] = useState<'1' | '2' | 'V'>('1')
+  const [semesters, setSemesters] = useState<Semester[]>([])
 
-  const addCourseForm = () => {
-    setFormCourses([...formCourses, { code: '', group: '' }])
+  const createSemester = () => {
+    if (!year) {
+      alert('Por favor seleccione un año')
+      return
+    }
+
+    const newSemester: Semester = {
+      id: `${year}-${period}`,
+      year: year,
+      period: period,
+      active: true
+    }
+
+    setSemesters([...semesters, newSemester])
+    setYear('')
   }
 
-  const updateFormCourse = (
-    idx: number,
-    field: keyof CourseEntry,
-    value: string
-  ) => {
-    const copy = [...formCourses]
-    copy[idx][field] = value
-    setFormCourses(copy)
+  const toggleSemester = (id: string) => {
+    setSemesters(semesters.map(sem => 
+      sem.id === id ? { ...sem, active: !sem.active } : sem
+    ))
   }
 
-  const removeFormCourse = (idx: number) => {
-    setFormCourses(formCourses.filter((_, i) => i !== idx))
-  }
-
-  const allFieldsFilled = (c: CourseEntry) =>
-    c.code.trim() !== '' && c.group.trim() !== ''
-
-  const addToSemester = (idx: number) => {
-    const course = formCourses[idx]
-    setSemesterCourses([...semesterCourses, course])
-    removeFormCourse(idx)
-  }
-
-  const removeSemesterCourse = (idx: number) => {
-    setSemesterCourses(semesterCourses.filter((_, i) => i !== idx))
+  const deleteSemester = (id: string) => {
+    setSemesters(semesters.filter(sem => sem.id !== id))
   }
 
   return (
     <div>
-      <h2 className="mb-4">Inicializar Semestre</h2>
+      <h2 className="mb-4">Gestión de Semestres</h2>
 
       {/* Año y periodo */}
       <div className="row mb-4">
-        <div className="col-md-6">
+        <div className="col-md-4">
           <label htmlFor="year" className="form-label">Año</label>
           <input
             id="year"
@@ -60,7 +57,7 @@ const SemesterInitializer: React.FC = () => {
             onChange={e => setYear(parseInt(e.target.value) || '')}
           />
         </div>
-        <div className="col-md-6">
+        <div className="col-md-4">
           <label htmlFor="period" className="form-label">Periodo</label>
           <select
             id="period"
@@ -73,78 +70,50 @@ const SemesterInitializer: React.FC = () => {
             <option value="V">V – Verano</option>
           </select>
         </div>
+        <div className="col-md-4 d-flex align-items-end">
+          <button 
+            className="btn btn-primary" 
+            onClick={createSemester}
+            disabled={!year}
+          >
+            Crear Semestre
+          </button>
+        </div>
       </div>
 
-      {/* Formularios de cursos pendientes */}
-      <div className="mb-4">
-        <h5>Cursos a Asignar</h5>
-        {formCourses.map((c, i) => (
-          <div key={i} className="border rounded p-3 mb-3">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <strong>Curso #{i + 1}</strong>
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => removeFormCourse(i)}
-              >
-                Eliminar
-              </button>
-            </div>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label">Código de Curso</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={c.code}
-                  onChange={e => updateFormCourse(i, 'code', e.target.value)}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Número de Grupo</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={c.group}
-                  onChange={e => updateFormCourse(i, 'group', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="mt-3 text-end">
-              <button
-                className="btn btn-success"
-                disabled={!allFieldsFilled(c)}
-                onClick={() => addToSemester(i)}
-              >
-                Agregar al Semestre
-              </button>
-            </div>
-          </div>
-        ))}
-
-        <button className="btn btn-secondary" onClick={addCourseForm}>
-          + Nuevo Curso
-        </button>
-      </div>
-
-      {/* Tabla de Cursos del Semestre */}
-      <h5 className="mt-5">Cursos del Semestre</h5>
+      {/* Tabla de Semestres */}
+      <h5 className="mt-5">Semestres</h5>
       <table className="table">
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Número de Grupo</th>
+            <th>ID</th>
+            <th>Año</th>
+            <th>Periodo</th>
+            <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {semesterCourses.map((c, i) => (
-            <tr key={i}>
-              <td>{c.code}</td>
-              <td>{c.group}</td>
+          {semesters.map((sem) => (
+            <tr key={sem.id}>
+              <td>{sem.id}</td>
+              <td>{sem.year}</td>
+              <td>{sem.period}</td>
+              <td>
+                <span className={`badge ${sem.active ? 'bg-success' : 'bg-secondary'}`}>
+                  {sem.active ? 'Activo' : 'Inactivo'}
+                </span>
+              </td>
               <td>
                 <button
+                  className={`btn btn-sm ${sem.active ? 'btn-warning' : 'btn-success'} me-2`}
+                  onClick={() => toggleSemester(sem.id)}
+                >
+                  {sem.active ? 'Desactivar' : 'Activar'}
+                </button>
+                <button
                   className="btn btn-sm btn-danger"
-                  onClick={() => removeSemesterCourse(i)}
+                  onClick={() => deleteSemester(sem.id)}
                 >
                   Eliminar
                 </button>
