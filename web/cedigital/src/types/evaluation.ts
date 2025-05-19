@@ -1,3 +1,5 @@
+import type { Group } from '@/types/groups'
+
 export interface Rubric {
   id: string
   name: string
@@ -14,7 +16,15 @@ export interface Assignment {
   dueTime: string
   isGroupWork: boolean
   instructionsFile: File | null
+  groupTypeId?: string
+  groupOption?: 'existing' | 'new'
 }
+
+export interface GroupMember {
+  carnet: string
+  name: string
+}
+
 
 export interface Submission {
   id: string
@@ -26,6 +36,7 @@ export interface Submission {
   grade: number | null
   feedback: string | null
   published: boolean
+  group?: Group
 }
 
 export interface Activity {

@@ -2,6 +2,7 @@ import React from 'react'
 import { useRouter } from 'next/router'
 import { useAuthStore } from '../../../../../stores/authStore'
 import Header from '@/components/global/Header'
+import { ParsedUrlQueryInput } from 'querystring'
 
 // Professor components
 import DocumentManager from '@/components/professor/DocumentManager'
@@ -9,6 +10,7 @@ import RubricManager from '@/components/professor/RubricManager'
 import NewsEditor from '@/components/professor/NewsEditor'
 import ReportNotes from '@/components/professor/ReportNotes'
 import ReportStudents from '@/components/professor/ReportStudents'
+import GroupManager from '@/components/professor/GroupManager'
 
 // Student components
 import DocumentViewer from '@/components/student/DocumentViewer'
@@ -23,6 +25,7 @@ const professorTabs = [
   { key: 'news', label: 'Noticias' },
   { key: 'notes', label: 'Reporte de Notas' },
   { key: 'students', label: 'Reporte de Estudiantes' },
+  { key: 'groups', label: 'Gestión de Grupos' },
 ]
 
 const studentTabs = [
@@ -31,9 +34,17 @@ const studentTabs = [
   { key: 'news', label: 'Noticias' },
 ]
 
+interface CourseQuery {
+  semester?: string
+  code?: string
+  group?: string
+  tab?: string
+  tabEv?: 'rubrics' | 'assignments' | 'submissions'
+}
+
 const CoursePage = () => {
   const router = useRouter()
-  const { semester, code, group, tab } = router.query
+  const { semester, code, group, tab, tabEv = 'rubrics' } = router.query as CourseQuery
   const user = useAuthStore(state => state.user)
 
   if (!user) return null
@@ -41,7 +52,21 @@ const CoursePage = () => {
   const tabs = user.role === 'professor' ? professorTabs : studentTabs
   
   const handleTabChange = (newTab: string) => {
-    router.push(`/courses/${semester}/${code}/${group}/${newTab}`)
+    const query: ParsedUrlQueryInput = {
+      semester: semester as string,
+      code: code as string,
+      group: group as string,
+      tab: newTab
+    }
+
+    if (newTab === 'rubrics') {
+      query.tabEv = 'rubrics'
+    }
+
+    router.push({ 
+      pathname: `/courses/[semester]/[code]/[group]/[tab]`,
+      query 
+    })
   }
 
   const renderContent = () => {
@@ -52,6 +77,7 @@ const CoursePage = () => {
         case 'news': return <NewsEditor />
         case 'notes': return <ReportNotes />
         case 'students': return <ReportStudents />
+        case 'groups': return <GroupManager />
         default: return null
       }
     } else {

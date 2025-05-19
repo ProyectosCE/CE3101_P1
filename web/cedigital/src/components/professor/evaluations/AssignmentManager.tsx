@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
+import { Modal } from 'react-bootstrap'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import { v4 as uuidv4 } from 'uuid'
 import AssignmentModal from './AssignmentModal'
+import GroupManager from '../GroupManager'
+import { useGroupsStore } from '@/stores/groupsStore'
+import type { Group, GroupActivity } from '@/types/groups'
 
 interface Rubric {
   id: string
@@ -65,9 +69,13 @@ const initialAssignments: Assignment[] = [
 ]
 
 const AssignmentManager: React.FC = () => {
+  const { groups, groupTypes, addGroupType, updateGroups, getGroupsByType } = useGroupsStore()
   const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments)
   const [showModal, setShowModal] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
+  const [showGroupManager, setShowGroupManager] = useState(false)
+  const [groupManagerTitle, setGroupManagerTitle] = useState('')
+  const [selectedGroupType, setSelectedGroupType] = useState<string | null>(null)
 
   const handleEdit = (assignment: Assignment) => {
     setEditingAssignment(assignment)
@@ -93,6 +101,39 @@ const AssignmentManager: React.FC = () => {
   const handleDelete = (id: string) => {
     if (confirm('¿Está seguro de eliminar esta evaluación?')) {
       setAssignments(prev => prev.filter(a => a.id !== id))
+    }
+  }
+
+  const handleCreateGroups = (activityName: string) => {
+    const newGroupType: GroupActivity = {
+      id: activityName.toLowerCase().replace(/\s+/g, '-'),
+      name: activityName
+    }
+    addGroupType(newGroupType)
+    setGroupManagerTitle(activityName)
+    setSelectedGroupType(newGroupType.id)
+    setShowGroupManager(true)
+    setShowModal(false)
+  }
+
+  const handleGroupManagerClose = () => {
+    setShowGroupManager(false)
+    setShowModal(true)
+  }
+
+  const handleGroupManagerSave = (newGroups: Group[]) => {
+    const currentGroups = groups.filter(g => g.activityId !== selectedGroupType)
+    updateGroups([...currentGroups, ...newGroups])
+    handleGroupManagerClose()
+  }
+
+  const handleEditGroups = (groupTypeId: string) => {
+    const groupType = groupTypes.find(t => t.id === groupTypeId)
+    if (groupType) {
+      setGroupManagerTitle(groupType.name)
+      setSelectedGroupType(groupTypeId)
+      setShowGroupManager(true)
+      setShowModal(false)
     }
   }
 
@@ -153,7 +194,31 @@ const AssignmentManager: React.FC = () => {
         onSave={handleSave}
         assignment={editingAssignment}
         rubrics={mockRubrics}
+        groups={groups}
+        groupTypes={groupTypes}
+        onCreateGroups={handleCreateGroups}
+        onEditGroups={handleEditGroups}
       />
+
+      {showGroupManager && (
+        <Modal show={true} onHide={handleGroupManagerClose} size="xl">
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Gestionar Grupos - {groupManagerTitle}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-0">
+            <GroupManager
+              initialGroups={groups.filter(g => g.activityId === selectedGroupType)}
+              activityId={selectedGroupType}
+              activityName={groupManagerTitle}
+              onSave={handleGroupManagerSave}
+              standalone={false}
+              singleCategory={true}
+            />
+          </Modal.Body>
+        </Modal>
+      )}
     </div>
   )
 }
