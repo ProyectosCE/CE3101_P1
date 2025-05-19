@@ -6,7 +6,6 @@ import { ParsedUrlQueryInput } from 'querystring'
 
 // Professor components
 import DocumentManager from '@/components/professor/DocumentManager'
-import RubricManager from '@/components/professor/RubricManager'
 import NewsEditor from '@/components/professor/NewsEditor'
 import ReportNotes from '@/components/professor/ReportNotes'
 import ReportStudents from '@/components/professor/ReportStudents'
