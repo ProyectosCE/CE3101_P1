@@ -1,35 +1,49 @@
-import React from 'react'
+import React, { useState } from 'react'
+import RubricList from './evaluations/RubricList'
+import AssignmentManager from './evaluations/AssignmentManager'
+import SubmissionManager from './evaluations/SubmissionManager'
 
-const EvaluationManager: React.FC = () => (
-  <div>
-    <h2 className="mb-4">Asignar / Evaluar Entregables</h2>
-    <button className="btn btn-primary mb-3">Asignar Evaluación</button>
-    <button className="btn btn-secondary mb-3 ms-2">Evaluar Entregable</button>
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Evaluación</th>
-          <th>Rubro</th>
-          <th>Fecha Entrega</th>
-          <th>Tipo</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {/* mapear evaluaciones del backend */}
-        <tr>
-          <td>Examen Parcial</td>
-          <td>Exámenes</td>
-          <td>20/05/2025</td>
-          <td>Individual</td>
-          <td>
-            <button className="btn btn-sm btn-info me-1">Ver</button>
-            <button className="btn btn-sm btn-primary">Calificar</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-)
+type TabType = 'rubrics' | 'assignments' | 'submissions'
+
+const EvaluationManager: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabType>('rubrics')
+
+  return (
+    <div className="evaluation-manager">
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === 'rubrics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('rubrics')}
+          >
+            Gestión de Rubros
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === 'assignments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            Gestión de Evaluaciones
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === 'submissions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('submissions')}
+          >
+            Gestión de Entregas
+          </button>
+        </li>
+      </ul>
+
+      <div className="tab-content">
+        {activeTab === 'rubrics' && <RubricList />}
+        {activeTab === 'assignments' && <AssignmentManager />}
+        {activeTab === 'submissions' && <SubmissionManager />}
+      </div>
+    </div>
+  )
+}
 
 export default EvaluationManager

@@ -14,6 +14,7 @@ import ReportStudents from '@/components/professor/ReportStudents'
 import DocumentViewer from '@/components/student/DocumentViewer'
 import StudentEvaluations from '@/components/student/StudentEvaluations'
 import NewsViewer from '@/components/student/NewsViewer'
+import EvaluationManager from '@/components/professor/EvaluationManager'
 
 // Reuse the tabs from student/professor dashboards
 const professorTabs = [
@@ -47,7 +48,7 @@ const CoursePage = () => {
     if (user.role === 'professor') {
       switch (tab) {
         case 'documents': return <DocumentManager />
-        case 'rubrics': return <RubricManager />
+        case 'rubrics': return <EvaluationManager />
         case 'news': return <NewsEditor />
         case 'notes': return <ReportNotes />
         case 'students': return <ReportStudents />
