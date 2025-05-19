@@ -23,7 +23,11 @@ const SemesterSection: React.FC<SemesterSectionProps> = ({ semester }) => {
       {isOpen && (
         <div className="courses-grid mt-3">
           {semester.courses.map(course => (
-            <CourseCard key={`${course.code}-${course.group}`} course={course} />
+            <CourseCard 
+              key={`${course.code}-${course.group}`} 
+              course={course}
+              semesterId={semester.id}
+            />
           ))}
         </div>
       )}
