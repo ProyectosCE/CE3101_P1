@@ -1,13 +1,13 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Entregable
     {
+        [Key]
         public int id_entregable { get; set; }
         public string archivo { get; set; }
-        public DateOnly fecha { get; set; }
-        public TimeOnly hora { get; set; }
-        public string entrega => fecha.ToString("yyyy-MM-dd") + " " + hora.ToString("hh\\:mm\\:ss");
-
+        public DateTime fecha_entrega { get; set; }
         public Nota? nota { get; set; } = new(); // 1 a 1
 
         // Foreign Keys

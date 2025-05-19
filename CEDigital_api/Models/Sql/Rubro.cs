@@ -1,7 +1,10 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Rubro
     {
+        [Key]
         public int id_rubro { get; set; }
         public string nombre { get; set; }
         public double porcentaje { get; set; }

@@ -1,7 +1,10 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Carpeta
     {
+        [Key]
         public int id_carpeta { get; set; }
         public string nombre { get; set; }
 

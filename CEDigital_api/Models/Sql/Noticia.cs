@@ -1,7 +1,10 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Noticia
     {
+        [Key]
         public int id_noticia { get; set; }
         public string titulo { get; set; }
         public DateTime fecha_publicacion { get; set; }

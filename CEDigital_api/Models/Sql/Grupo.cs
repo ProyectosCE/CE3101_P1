@@ -1,7 +1,10 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Grupo
     {
+        [Key]
         public int id_grupo { get; set; }
         public int numero_grupo { get; set; }
 

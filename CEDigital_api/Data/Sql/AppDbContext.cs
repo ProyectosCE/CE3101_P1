@@ -8,19 +8,19 @@ namespace CEDigital_api.Data.Sql
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<Carpeta> Carpetas { get; set; }
-        public DbSet<Carrera> Carreras { get; set; }
-        public DbSet<Curso> Cursos { get; set; }
-        public DbSet<Documento> Documentos { get; set; }
-        public DbSet<Entregable> Entregables { get; set; }
-        public DbSet<Evaluacion> Evaluaciones { get; set; }
-        public DbSet<Grupo> Grupos { get; set; }
-        public DbSet<GrupoXEstudiante> GruposXEstudiantes { get; set; }
-        public DbSet<Nota> Notas { get; set; }
-        public DbSet<Noticia> Noticias { get; set; }
-        public DbSet<ProfesorXGrupo> ProfesoresXGrupos { get; set; }
-        public DbSet<Rubro> Rubros { get; set; }
-        public DbSet<Semestre> Semestres { get; set; }
+        public DbSet<Carpeta> Carpeta { get; set; }
+        public DbSet<Carrera> Carrera { get; set; }
+        public DbSet<Curso> Curso { get; set; }
+        public DbSet<Documento> Documento { get; set; }
+        public DbSet<Entregable> Entregable { get; set; }
+        public DbSet<Evaluacion> Evaluacion { get; set; }
+        public DbSet<Grupo> Grupo { get; set; }
+        public DbSet<GrupoXEstudiante> GrupoXEstudiante { get; set; }
+        public DbSet<Nota> Nota { get; set; }
+        public DbSet<Noticia> Noticia { get; set; }
+        public DbSet<ProfesorXGrupo> ProfesorXGrupo { get; set; }
+        public DbSet<Rubro> Rubro { get; set; }
+        public DbSet<Semestre> Semestre { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,7 +1,10 @@
-﻿namespace CEDigital_api.Models.Sql
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace CEDigital_api.Models.Sql
 {
     public class Curso
     {
+        [Key]
         public string codigo_curso { get; set; }
         public string nombre { get; set; }
         public int creditos { get; set; }
