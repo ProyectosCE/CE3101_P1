@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -9,6 +10,7 @@ namespace CEDigital_api.Models.Sql
         public string codigo_carrera { get; set; }
         public string nombre { get; set; }
 
+        [JsonIgnore]
         public List<Curso> cursos { get; set; } = new();
     }
 }

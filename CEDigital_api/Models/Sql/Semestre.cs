@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -9,8 +10,7 @@ namespace CEDigital_api.Models.Sql
         public int año { get; set; }
         public string periodo { get; set; }
 
-        //public List<Curso> cursos { get; set; } = new();
-
+        [JsonIgnore]
         public List<Grupo> grupos { get; set; } = new();
     }
 }

@@ -14,5 +14,6 @@ namespace CEDigital_api.Models.Sql
         public int id_grupo { get; set; }
         public Grupo? grupo { get; set; }
         public string cedula_profesor { get; set; }
+        public Profesor? profesor { get; set; }
     }
 }

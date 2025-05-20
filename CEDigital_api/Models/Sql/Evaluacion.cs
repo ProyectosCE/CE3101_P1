@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -12,6 +13,7 @@ namespace CEDigital_api.Models.Sql
         public string tipo { get; set; }
         public string archivo_especificacion { get; set; }
 
+        [JsonIgnore]
         public List<Entregable> entregables { get; set; } = new();
 
         // Foreign Keys

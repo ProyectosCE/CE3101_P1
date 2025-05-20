@@ -4,6 +4,7 @@
     {
         // Foreign Keys
         public string cedula_profesor { get; set; }
+        public Profesor? profesor { get; set; }
         public int id_grupo { get; set; }
         public Grupo? grupo { get; set; }
     }

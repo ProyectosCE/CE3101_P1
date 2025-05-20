@@ -2,7 +2,7 @@ CREATE TABLE Carpeta (
     id_carpeta        INT IDENTITY(1,1) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
     id_grupo          INT NOT NULL,
-    cedula_profesor            NVARCHAR(20) NOT NULL
+    cedula_profesor   NVARCHAR(20) NOT NULL
 );
 GO
 
@@ -17,7 +17,6 @@ CREATE TABLE Curso (
     nombre            NVARCHAR(100) NOT NULL,
     creditos          INT NOT NULL,
     codigo_carrera    NVARCHAR(10) NOT NULL
-    --id_semestre       INT NOT NULL
 );
 GO
 
@@ -60,13 +59,6 @@ CREATE TABLE Grupo (
 );
 GO
 
---CREATE TABLE GrupoXEstudiante (
---    id_grupo          INT NOT NULL,
---    carnet_estudiante NVARCHAR(20) NOT NULL,
---    PRIMARY KEY(id_grupo, carnet_estudiante)
---);
---GO
-
 CREATE TABLE Nota (
     id_entregable        INT PRIMARY KEY,
     calificacion         DECIMAL(5,2) NOT NULL,
@@ -86,6 +78,20 @@ CREATE TABLE Noticia (
 );
 GO
 
+CREATE TABLE Profesor (
+    cedula_profesor NVARCHAR(20) PRIMARY KEY
+);
+GO
+
+CREATE TABLE Estudiante (
+    carnet_estudiante NVARCHAR(20) PRIMARY KEY
+);
+
+CREATE TABLE EstudianteXGrupo (
+    id_grupo          INT NOT NULL,
+    carnet_estudiante NVARCHAR(20) NOT NULL,
+    PRIMARY KEY(id_grupo, carnet_estudiante)
+);
 
 CREATE TABLE ProfesorXGrupo (
     cedula_profesor            NVARCHAR(20) NOT NULL,
@@ -115,17 +121,13 @@ ALTER TABLE Carpeta
     ADD CONSTRAINT FK_Carpeta_Grupo FOREIGN KEY(id_grupo)
         REFERENCES Grupo(id_grupo);
 
---ALTER TABLE Carpeta
---    ADD CONSTRAINT FK_Carpeta_Profesor FOREIGN KEY(cedula_profesor)
---        REFERENCES Profesor(cedula_profesor);
+ALTER TABLE Carpeta
+    ADD CONSTRAINT FK_Carpeta_Profesor FOREIGN KEY(cedula_profesor)
+        REFERENCES Profesor(cedula_profesor);
 
 ALTER TABLE Curso
     ADD CONSTRAINT FK_Curso_Carrera FOREIGN KEY(codigo_carrera)
         REFERENCES Carrera(codigo_carrera);
-
---ALTER TABLE Curso
---    ADD CONSTRAINT FK_Curso_Semestre FOREIGN KEY(id_semestre)
---        REFERENCES Semestre(id_semestre);
 
 ALTER TABLE Documento
     ADD CONSTRAINT FK_Documento_Carpeta FOREIGN KEY(id_carpeta)
@@ -135,9 +137,9 @@ ALTER TABLE Entregable
     ADD CONSTRAINT FK_Entregable_Evaluacion FOREIGN KEY(id_evaluacion)
         REFERENCES Evaluacion(id_evaluacion);
 
---ALTER TABLE Entregable
---    ADD CONSTRAINT FK_Entregable_Estudiante FOREIGN KEY(carnet_estudiante)
---        REFERENCES Estudiante(carnet_estudiante);
+ALTER TABLE Entregable
+    ADD CONSTRAINT FK_Entregable_Estudiante FOREIGN KEY(carnet_estudiante)
+        REFERENCES Estudiante(carnet_estudiante);
 
 --ALTER TABLE Estudiante
 --    ADD CONSTRAINT FK_Estudiante_Carrera FOREIGN KEY(codigo_carrera)
@@ -152,37 +154,37 @@ ALTER TABLE Grupo
         REFERENCES Curso(codigo_curso);
 
 ALTER TABLE Grupo
-    ADD CONSTRAINT FK_Grupo_Curso FOREIGN KEY(id_semestre)
+    ADD CONSTRAINT FK_Grupo_Semestre FOREIGN KEY(id_semestre)
         REFERENCES Semestre(id_semestre);
 
 
---ALTER TABLE GrupoXEstudiante
---    ADD CONSTRAINT FK_GxE_Grupo FOREIGN KEY(id_grupo)
---        REFERENCES Grupo(id_grupo);
+ALTER TABLE EstudianteXGrupo
+    ADD CONSTRAINT FK_GxE_Grupo FOREIGN KEY(id_grupo)
+        REFERENCES Grupo(id_grupo);
 
---ALTER TABLE GrupoXEstudiante
---    ADD CONSTRAINT FK_GxE_Estudiante FOREIGN KEY(carnet_estudiante)
---        REFERENCES Estudiante(carnet_estudiante);
+ALTER TABLE EstudianteXGrupo
+    ADD CONSTRAINT FK_GxE_Estudiante FOREIGN KEY(carnet_estudiante)
+        REFERENCES Estudiante(carnet_estudiante);
 
 ALTER TABLE Nota
     ADD CONSTRAINT FK_Nota_Entregable FOREIGN KEY(id_entregable)
         REFERENCES Entregable(id_entregable);
 
---ALTER TABLE Nota
---    ADD CONSTRAINT FK_Nota_Estudiante FOREIGN KEY(carnet_estudiante)
---        REFERENCES Estudiante(carnet_estudiante);
+ALTER TABLE Nota
+    ADD CONSTRAINT FK_Nota_Estudiante FOREIGN KEY(carnet_estudiante)
+        REFERENCES Estudiante(carnet_estudiante);
 
 ALTER TABLE Noticia
     ADD CONSTRAINT FK_Noticia_Grupo FOREIGN KEY (id_grupo)
         REFERENCES Grupo(id_grupo);
 
---ALTER TABLE Noticia
---   ADD CONSTRAINT FK_Noticia_Profesor FOREIGN KEY (cedula_profesor)
---        REFERENCES Profesor(cedula_profesor);
+ALTER TABLE Noticia
+   ADD CONSTRAINT FK_Noticia_Profesor FOREIGN KEY (cedula_profesor)
+        REFERENCES Profesor(cedula_profesor);
 
---ALTER TABLE ProfesorXGrupo
---    ADD CONSTRAINT FK_PxG_Profesor FOREIGN KEY(cedula_profesor)
---        REFERENCES Profesor(cedula_profesor);
+ALTER TABLE ProfesorXGrupo
+    ADD CONSTRAINT FK_PxG_Profesor FOREIGN KEY(cedula_profesor)
+        REFERENCES Profesor(cedula_profesor);
 
 ALTER TABLE ProfesorXGrupo
     ADD CONSTRAINT FK_PxG_Grupo FOREIGN KEY(id_grupo)

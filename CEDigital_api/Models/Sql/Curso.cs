@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -9,6 +10,7 @@ namespace CEDigital_api.Models.Sql
         public string nombre { get; set; }
         public int creditos { get; set; }
 
+        [JsonIgnore]
         public List<Grupo> grupos { get; set; } = new();
 
         // Foreign Keys

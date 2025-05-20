@@ -14,8 +14,7 @@ namespace CEDigital_api.Models.Sql
         public int id_evaluacion { get; set; }
         public Evaluacion? evaluacion { get; set; }
         public string carnet_estudiante { get; set; }
-
-
+        public Estudiante? estudiante { get; set; } 
 
     }
 }
