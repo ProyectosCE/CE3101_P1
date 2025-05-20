@@ -54,8 +54,7 @@ CREATE TABLE Grupo (
     id_grupo          INT IDENTITY(1,1) PRIMARY KEY,
     numero_grupo      INT NOT NULL,
     codigo_curso      NVARCHAR(10) NOT NULL,
-    id_semestre       INT NOT NULL,
-    carnet_estudiante NVARCHAR(20) NOT NULL,
+    id_semestre       INT NOT NULL
 );
 GO
 
