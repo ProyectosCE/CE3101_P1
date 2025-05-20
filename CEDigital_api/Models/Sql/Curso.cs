@@ -17,7 +17,5 @@ namespace CEDigital_api.Models.Sql
         public string codigo_carrera { get; set; }
         public Carrera? carrera { get; set; }
 
-        public int id_semestre { get; set; }
-        public Semestre? semestre { get; set; }
     }
 }
