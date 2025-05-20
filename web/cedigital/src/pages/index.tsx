@@ -1,20 +1,25 @@
 // src/pages/index.tsx
-import React from 'react'
-import Link from 'next/link'
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useAuthStore } from '../stores/authStore'
 
-const Home: React.FC = () => (
-  <div className="home-wrapper">
-    <div className="home-card">
-      <img
-        src="/images/LogoTransparente.png"
-        alt="CEDigital Logo"
-        className="home-logo"
-      />
-      <Link href="/login" className="home-button">
-        Ir a Login
-      </Link>
-    </div>
-  </div>
-)
+const Home = () => {
+  const router = useRouter()
+  const { user, isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/main')
+      }
+    } else {
+      router.push('/login')
+    }
+  }, [])
+
+  return null
+}
 
 export default Home

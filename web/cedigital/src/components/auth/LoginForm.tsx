@@ -1,14 +1,39 @@
 // src/components/auth/LoginForm.tsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useAuthStore } from '../../stores/authStore'
 
 const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
+  const login = useAuthStore((state) => state.login)
+  const checkExpiration = useAuthStore((state) => state.checkExpiration)
+  const router = useRouter()
+
+  useEffect(() => {
+    checkExpiration()
+  }, [])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = login(username, password)
+    
+    if (success) {
+      const user = useAuthStore.getState().user
+      if (user?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/main')
+      }
+    } else {
+      alert('Credenciales inválidas')
+    }
+  }
 
   return (
     <div className="login-page">
-      <div className="login-card text-center">
+      <form onSubmit={handleSubmit} className="login-card text-center">
         <img
           src="/images/LogoTransparente.png"
           alt="CEDigital Logo"
@@ -17,18 +42,18 @@ const LoginForm: React.FC = () => {
         <h3 className="mb-4">Iniciar Sesión</h3>
 
         <div className="mb-3 text-start">
-          <label htmlFor="email" className="form-label">Correo electrónico</label>
+          <label htmlFor="email" className="form-label">Usuario</label>
           <div className="input-group">
             <span className="input-group-text">
-              <i className="fas fa-envelope"></i>
+              <i className="fas fa-user"></i>
             </span>
             <input
-              type="email"
-              id="email"
+              type="text"
+              id="username"
               className="form-control"
-              placeholder="usuario@ejemplo.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              placeholder="Nombre de usuario"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
             />
           </div>
@@ -63,7 +88,7 @@ const LoginForm: React.FC = () => {
         <button type="submit" className="btn btn-primary w-100">
           Entrar
         </button>
-      </div>
+      </form>
     </div>
   )
 }

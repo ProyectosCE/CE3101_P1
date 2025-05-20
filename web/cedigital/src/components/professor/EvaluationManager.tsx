@@ -1,35 +1,64 @@
 import React from 'react'
+import { useRouter } from 'next/router'
+import RubricList from './evaluations/RubricList'
+import AssignmentManager from './evaluations/AssignmentManager'
+import SubmissionManager from './evaluations/SubmissionManager'
 
-const EvaluationManager: React.FC = () => (
-  <div>
-    <h2 className="mb-4">Asignar / Evaluar Entregables</h2>
-    <button className="btn btn-primary mb-3">Asignar Evaluación</button>
-    <button className="btn btn-secondary mb-3 ms-2">Evaluar Entregable</button>
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Evaluación</th>
-          <th>Rubro</th>
-          <th>Fecha Entrega</th>
-          <th>Tipo</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {/* mapear evaluaciones del backend */}
-        <tr>
-          <td>Examen Parcial</td>
-          <td>Exámenes</td>
-          <td>20/05/2025</td>
-          <td>Individual</td>
-          <td>
-            <button className="btn btn-sm btn-info me-1">Ver</button>
-            <button className="btn btn-sm btn-primary">Calificar</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-)
+type TabType = 'rubrics' | 'assignments' | 'submissions'
+
+const EvaluationManager: React.FC = () => {
+  const router = useRouter()
+  const { semester, code, group, tab, tabEv = 'rubrics' } = router.query
+
+  const handleTabChange = (newTab: TabType) => {
+    router.push({
+      pathname: `/courses/[semester]/[code]/[group]/[tab]`,
+      query: { 
+        semester, 
+        code, 
+        group, 
+        tab: 'rubrics',
+        tabEv: newTab 
+      }
+    }, undefined, { shallow: true })
+  }
+
+  return (
+    <div className="evaluation-manager">
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${tabEv === 'rubrics' ? 'active' : ''}`}
+            onClick={() => handleTabChange('rubrics')}
+          >
+            Gestión de Rubros
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${tabEv === 'assignments' ? 'active' : ''}`}
+            onClick={() => handleTabChange('assignments')}
+          >
+            Gestión de Evaluaciones
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${tabEv === 'submissions' ? 'active' : ''}`}
+            onClick={() => handleTabChange('submissions')}
+          >
+            Gestión de Entregas
+          </button>
+        </li>
+      </ul>
+
+      <div className="tab-content">
+        {tabEv === 'rubrics' && <RubricList />}
+        {tabEv === 'assignments' && <AssignmentManager />}
+        {tabEv === 'submissions' && <SubmissionManager />}
+      </div>
+    </div>
+  )
+}
 
 export default EvaluationManager
