@@ -9,6 +9,8 @@ namespace CEDigital_api.Models.Sql
         public int año { get; set; }
         public string periodo { get; set; }
 
-        public List<Curso> cursos { get; set; } = new();
+        //public List<Curso> cursos { get; set; } = new();
+
+        public List<Grupo> grupos { get; set; } = new();
     }
 }

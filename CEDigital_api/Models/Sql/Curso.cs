@@ -9,6 +9,8 @@ namespace CEDigital_api.Models.Sql
         public string nombre { get; set; }
         public int creditos { get; set; }
 
+        public List<Grupo> grupos { get; set; } = new();
+
         // Foreign Keys
         public string codigo_carrera { get; set; }
         public Carrera? carrera { get; set; }

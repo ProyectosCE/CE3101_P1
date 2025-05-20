@@ -15,7 +15,7 @@ namespace CEDigital_api.Data.Sql
         public DbSet<Entregable> Entregable { get; set; }
         public DbSet<Evaluacion> Evaluacion { get; set; }
         public DbSet<Grupo> Grupo { get; set; }
-        public DbSet<GrupoXEstudiante> GrupoXEstudiante { get; set; }
+        //public DbSet<GrupoXEstudiante> GrupoXEstudiante { get; set; }
         public DbSet<Nota> Nota { get; set; }
         public DbSet<Noticia> Noticia { get; set; }
         public DbSet<ProfesorXGrupo> ProfesorXGrupo { get; set; }
@@ -72,11 +72,17 @@ namespace CEDigital_api.Data.Sql
                 .WithMany(g => g.noticias)
                 .HasForeignKey(n => n.id_grupo);
 
-            // Semestre(1) - Curso(N)
-            modelBuilder.Entity<Curso>()
-                .HasOne(c => c.semestre)
-                .WithMany(s => s.cursos)
-                .HasForeignKey(c => c.id_semestre);
+            // Semestre(1) - Grupo(N)
+            modelBuilder.Entity<Grupo>()
+                .HasOne(g => g.semestre)
+                .WithMany(s => s.grupos)
+                .HasForeignKey(g => g.id_semestre);
+
+            // Curso(1) - Grupo(N)
+            modelBuilder.Entity<Grupo>()
+                .HasOne(g => g.curso)
+                .WithMany(c => c.grupos)
+                .HasForeignKey(g => g.codigo_curso);
 
             // Carpeta(1) - Documento(N)
             modelBuilder.Entity<Documento>()
@@ -87,13 +93,13 @@ namespace CEDigital_api.Data.Sql
             //========== Relaciones N a N ===================
 
             // Grupo(N) - Estudiante(M)
-            modelBuilder.Entity<GrupoXEstudiante>()
-                .HasKey(ge => new { ge.id_grupo, ge.carnet_estudiante });
+            //modelBuilder.Entity<GrupoXEstudiante>()
+            //    .HasKey(ge => new { ge.id_grupo, ge.carnet_estudiante });
 
-            modelBuilder.Entity<GrupoXEstudiante>()
-                .HasOne(ge => ge.grupo)
-                .WithMany(g => g.estudiantes)
-                .HasForeignKey(ge => ge.id_grupo);
+            //modelBuilder.Entity<GrupoXEstudiante>()
+            //    .HasOne(ge => ge.grupo)
+            //    .WithMany(g => g.estudiantes)
+            //    .HasForeignKey(ge => ge.id_grupo);
 
             // Profesor(N) - Grupo(M)
             modelBuilder.Entity<ProfesorXGrupo>()

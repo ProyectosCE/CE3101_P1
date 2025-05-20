@@ -16,8 +16,8 @@ CREATE TABLE Curso (
     codigo_curso      NVARCHAR(10) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
     creditos          INT NOT NULL,
-    codigo_carrera    NVARCHAR(10) NOT NULL,
-    id_semestre       INT NOT NULL
+    codigo_carrera    NVARCHAR(10) NOT NULL
+    --id_semestre       INT NOT NULL
 );
 GO
 
@@ -53,16 +53,19 @@ GO
 
 CREATE TABLE Grupo (
     id_grupo          INT IDENTITY(1,1) PRIMARY KEY,
-    numero_grupo      INT NOT NULL
+    numero_grupo      INT NOT NULL,
+    codigo_curso      NVARCHAR(10) NOT NULL,
+    id_semestre       INT NOT NULL,
+    carnet_estudiante NVARCHAR(20) NOT NULL,
 );
 GO
 
-CREATE TABLE GrupoXEstudiante (
-    id_grupo          INT NOT NULL,
-    carnet_estudiante NVARCHAR(20) NOT NULL,
-    PRIMARY KEY(id_grupo, carnet_estudiante)
-);
-GO
+--CREATE TABLE GrupoXEstudiante (
+--    id_grupo          INT NOT NULL,
+--    carnet_estudiante NVARCHAR(20) NOT NULL,
+--    PRIMARY KEY(id_grupo, carnet_estudiante)
+--);
+--GO
 
 CREATE TABLE Nota (
     id_entregable        INT PRIMARY KEY,
@@ -120,9 +123,9 @@ ALTER TABLE Curso
     ADD CONSTRAINT FK_Curso_Carrera FOREIGN KEY(codigo_carrera)
         REFERENCES Carrera(codigo_carrera);
 
-ALTER TABLE Curso
-    ADD CONSTRAINT FK_Curso_Semestre FOREIGN KEY(id_semestre)
-        REFERENCES Semestre(id_semestre);
+--ALTER TABLE Curso
+--    ADD CONSTRAINT FK_Curso_Semestre FOREIGN KEY(id_semestre)
+--        REFERENCES Semestre(id_semestre);
 
 ALTER TABLE Documento
     ADD CONSTRAINT FK_Documento_Carpeta FOREIGN KEY(id_carpeta)
@@ -144,13 +147,18 @@ ALTER TABLE Evaluacion
     ADD CONSTRAINT FK_Evaluacion_Rubro FOREIGN KEY(id_rubro)
         REFERENCES Rubro(id_rubro);
 
---ALTER TABLE Grupo
---    ADD CONSTRAINT FK_Grupo_Curso FOREIGN KEY(codigo_curso)
---        REFERENCES Curso(codigo_curso);
+ALTER TABLE Grupo
+    ADD CONSTRAINT FK_Grupo_Curso FOREIGN KEY(codigo_curso)
+        REFERENCES Curso(codigo_curso);
 
-ALTER TABLE GrupoXEstudiante
-    ADD CONSTRAINT FK_GxE_Grupo FOREIGN KEY(id_grupo)
-        REFERENCES Grupo(id_grupo);
+ALTER TABLE Grupo
+    ADD CONSTRAINT FK_Grupo_Curso FOREIGN KEY(id_semestre)
+        REFERENCES Semestre(id_semestre);
+
+
+--ALTER TABLE GrupoXEstudiante
+--    ADD CONSTRAINT FK_GxE_Grupo FOREIGN KEY(id_grupo)
+--        REFERENCES Grupo(id_grupo);
 
 --ALTER TABLE GrupoXEstudiante
 --    ADD CONSTRAINT FK_GxE_Estudiante FOREIGN KEY(carnet_estudiante)

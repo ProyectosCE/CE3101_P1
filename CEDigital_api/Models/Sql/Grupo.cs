@@ -7,13 +7,21 @@ namespace CEDigital_api.Models.Sql
         [Key]
         public int id_grupo { get; set; }
         public int numero_grupo { get; set; }
+        public string carnet_estudiante { get; set; }
 
         public List<Rubro> rubros { get; set; } = new();
         public List<Carpeta> carpetas { get; set; } = new();
         public List<Noticia> noticias { get; set; } = new();
 
-        public ICollection<GrupoXEstudiante> estudiantes { get; set; }
+        //public ICollection<GrupoXEstudiante> estudiantes { get; set; }
 
         public ICollection<ProfesorXGrupo> profesores { get; set; } 
+
+        // Fks
+        public int id_semestre { get; set; }
+        public Semestre? semestre { get; set; }
+
+        public string codigo_curso { get; set; }
+        public Curso? curso { get; set; }
     }
 }
