@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace CEDigital_api.Models.Mongo
 {
+    [BsonIgnoreExtraElements]
     public class Estudiante
     {
         [BsonId]
@@ -17,7 +18,8 @@ namespace CEDigital_api.Models.Mongo
         public string correo { get; set; }
         public string telefono { get; set; }
         public string password { get; set; }
-
+        [BsonElement("isAdmin")]
+        public bool IsAdmin { get; set; } = false;
 
     }
 }

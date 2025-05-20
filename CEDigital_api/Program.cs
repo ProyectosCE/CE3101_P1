@@ -16,6 +16,8 @@ builder.Services.Configure<MongoDbSettings>(
 
 builder.Services.AddSingleton<ProfesorService>();
 builder.Services.AddSingleton<EstudianteService>();
+builder.Services.AddSingleton<AuthService>();
+
 
 var app = builder.Build();
 
