@@ -7,13 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Data\Sql\Tablas\setup.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Data\Sql\Tablas\setup.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Compile Remove="Data\Sql\Tablas\**" />
+    <Content Remove="Data\Sql\Tablas\**" />
+    <EmbeddedResource Remove="Data\Sql\Tablas\**" />
+    <None Remove="Data\Sql\Tablas\**" />
   </ItemGroup>
 
   <ItemGroup>

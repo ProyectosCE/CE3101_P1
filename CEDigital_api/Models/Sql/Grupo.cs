@@ -8,7 +8,6 @@ namespace CEDigital_api.Models.Sql
         [Key]
         public int id_grupo { get; set; }
         public int numero_grupo { get; set; }
-        public string carnet_estudiante { get; set; }
 
         [JsonIgnore]
         public List<Rubro> rubros { get; set; } = new();
@@ -29,7 +28,7 @@ namespace CEDigital_api.Models.Sql
         public int id_semestre { get; set; }
         public Semestre? semestre { get; set; }
 
-        public string codigo_curso { get; set; }
+        public string? codigo_curso { get; set; }
         public Curso? curso { get; set; }
     }
 }
