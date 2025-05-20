@@ -1,22 +1,25 @@
-// src/pages/admin/dashboard.tsx
 import React, { useState } from 'react'
-import ProtectedRoute from '../../components/auth/ProtectedRoute'
-import { useAuthStore } from '../../stores/authStore'
-import Header from '../../components/global/Header'
-import CourseManager from '../../components/admin/CourseManager'
-import SchoolManager from '../../components/admin/SchoolManager'
-import SemesterInitializer from '../../components/admin/SemesterInitializer'
-import GroupManager from '../../components/admin/GroupManager'
+import ProtectedRoute        from '../../components/auth/ProtectedRoute'
+import { useAuthStore }      from '../../stores/authStore'
+import Header                from '../../components/global/Header'
+import CourseManager         from '../../components/admin/CourseManager'
+import SchoolManager         from '../../components/admin/SchoolManager'
+import SemesterInitializer   from '../../components/admin/SemesterInitializer'
+import GroupManager          from '../../components/admin/GroupManager'
+import ProfessorManager      from '../../components/admin/ProfessorManager'
+import StudentManager        from '../../components/admin/StudentManager'
 
 const AdminDashboard: React.FC = () => {
-  const [view, setView] = useState<'courses' | 'schools' | 'semester' | 'groups'>('courses')
+  const [view, setView] = useState<
+    'courses' | 'schools' | 'semester' | 'groups' | 'professors' | 'students'
+  >('courses')
   const user = useAuthStore((state) => state.user)
 
   return (
     <ProtectedRoute>
       <div className="admin-dashboard">
         <Header username={user?.username || 'Administrador'} />
-        
+
         <ul className="nav nav-tabs admin-tabs mb-4">
           <li className="nav-item">
             <button
@@ -50,13 +53,31 @@ const AdminDashboard: React.FC = () => {
               Gestión de Grupos
             </button>
           </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${view === 'professors' ? 'active' : ''}`}
+              onClick={() => setView('professors')}
+            >
+              Gestión de Profesores
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${view === 'students' ? 'active' : ''}`}
+              onClick={() => setView('students')}
+            >
+              Gestión de Estudiantes
+            </button>
+          </li>
         </ul>
 
         <div className="admin-content">
-          {view === 'courses' ? <CourseManager /> :
-           view === 'schools' ? <SchoolManager /> :
-           view === 'semester' ? <SemesterInitializer /> :
-           <GroupManager />}
+          {view === 'courses'     && <CourseManager />}
+          {view === 'schools'     && <SchoolManager />}
+          {view === 'semester'    && <SemesterInitializer />}
+          {view === 'groups'      && <GroupManager />}
+          {view === 'professors'  && <ProfessorManager />}
+          {view === 'students'    && <StudentManager />}
         </div>
       </div>
     </ProtectedRoute>
