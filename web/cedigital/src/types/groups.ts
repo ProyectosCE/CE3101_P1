@@ -13,6 +13,6 @@ export interface GroupActivity {
 export interface Group {
   id: string
   name: string
-  activityId: string | null // null means general group
+  activityId: string | null
   members: Student[]
 }

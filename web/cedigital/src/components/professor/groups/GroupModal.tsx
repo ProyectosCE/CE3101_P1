@@ -11,6 +11,7 @@ interface GroupModalProps {
   onSave: (group: Group) => void
   group: Group | null
   getAvailableStudents: (activityId: string | null, excludeGroupId?: string) => Student[]
+  mode: 'newManager' | 'editManager' | 'newEvaluationStatic' | 'editEvaluationStatic'
 }
 
 const GroupModal: React.FC<GroupModalProps> = ({
@@ -18,11 +19,13 @@ const GroupModal: React.FC<GroupModalProps> = ({
   onHide,
   onSave,
   group,
-  getAvailableStudents
+  getAvailableStudents,
+  mode
 }) => {
   const { groupTypes } = useGroupsStore()
+  
   const [form, setForm] = useState<Group>({
-    id: '',
+    id: uuidv4(),
     name: '',
     activityId: null,
     members: []
@@ -33,32 +36,35 @@ const GroupModal: React.FC<GroupModalProps> = ({
 
   useEffect(() => {
     if (show) {
-      if (group) {
-        setForm(group)
-        setAvailableStudents(getAvailableStudents(group.activityId, group.id))
+      if (mode.startsWith('edit')) {
+        setForm({
+          ...group!,
+          activityId: group?.activityId || 'general'
+        })
+        const availableStudentsList = getAvailableStudents(group?.activityId || null, group?.id)
+        setAvailableStudents(availableStudentsList)
       } else {
-        const newGroup = {
+        setForm({
           id: uuidv4(),
           name: '',
-          activityId: null,
+          activityId: mode === 'newEvaluationStatic' ? group?.activityId || null : null,
           members: []
-        }
-        setForm(newGroup)
-        setAvailableStudents(getAvailableStudents(null))
+        })
+        const availableStudentsList = getAvailableStudents(
+          mode === 'newEvaluationStatic' ? group?.activityId || null : null
+        )
+        setAvailableStudents(availableStudentsList)
       }
+      setSearch('')
     }
-  }, [show, group])
-
-  const handleActivityChange = (activityId: string) => {
-    setForm(prev => ({
-      ...prev,
-      activityId: activityId || null,
-      members: []
-    }))
-    setAvailableStudents(getAvailableStudents(activityId || null, form.id))
-  }
+  }, [show, group, mode, getAvailableStudents])
 
   const addMember = (student: Student) => {
+    // Check if student is already in the group
+    if (form.members.some(m => m.carnet === student.carnet)) {
+      return; // Don't add if student is already in the group
+    }
+    
     setForm(prev => ({
       ...prev,
       members: [...prev.members, student]
@@ -83,18 +89,27 @@ const GroupModal: React.FC<GroupModalProps> = ({
       .includes(search.toLowerCase())
   )
 
-  const showStudents = form.activityId !== null && form.activityId !== '';
+  const handleTypeChange = (activityId: string) => {
+    setForm(prev => ({
+      ...prev,
+      activityId,
+      members: [] // Clear members when changing group type
+    }))
+    // Immediately load students for the selected type
+    const availableStudentsList = getAvailableStudents(activityId)
+    setAvailableStudents(availableStudentsList)
+  }
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
       <Modal.Header closeButton>
         <Modal.Title>
-          {group ? 'Editar Grupo' : 'Nuevo Grupo'}
+          {mode.startsWith('edit') ? 'Editar Grupo' : 'Nuevo Grupo'}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div className="row g-3">
-          <div className="col-md-6">
+          <div className="col-12">
             <label className="form-label">Nombre del Grupo</label>
             <input
               type="text"
@@ -103,22 +118,32 @@ const GroupModal: React.FC<GroupModalProps> = ({
               onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
             />
           </div>
-          <div className="col-md-6">
-            <label className="form-label">Tipo de Grupo</label>
-            <select
-              className="form-select"
-              value={form.activityId || ''}
-              onChange={e => handleActivityChange(e.target.value)}
-            >
-              <option value="">Seleccionar tipo...</option>
-              <option value="general">Grupo General</option>
-              {groupTypes.filter(t => t.id !== 'general').map(type => (
-                <option key={type.id} value={type.id}>{type.name}</option>
-              ))}
-            </select>
-          </div>
 
-          {showStudents ? (
+          {/* Type selector - show and enable based on mode */}
+          {!mode.endsWith('Static') && (
+            <div className="col-12">
+              <label className="form-label">Tipo de Grupo</label>
+              <select
+                className="form-select"
+                value={form.activityId || ''}
+                onChange={e => handleTypeChange(e.target.value)}
+                disabled={mode.startsWith('edit')}
+              >
+                <option value="">Seleccionar tipo...</option>
+                <option value="general">Grupo General</option>
+                {groupTypes
+                  .filter(t => t.id !== 'general')
+                  .map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+
+          {/* Show students section when appropriate */}
+          {((mode.endsWith('Static') && form.activityId) || (!mode.endsWith('Static') && form.activityId)) && (
             <div className="col-12">
               <label className="form-label">Buscar Estudiantes</label>
               <div className="input-group mb-3">
@@ -176,12 +201,6 @@ const GroupModal: React.FC<GroupModalProps> = ({
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="col-12">
-              <div className="alert alert-info">
-                Seleccione un tipo de grupo para ver los estudiantes disponibles
               </div>
             </div>
           )}

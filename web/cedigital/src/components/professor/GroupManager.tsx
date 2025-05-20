@@ -49,20 +49,30 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   }
 
   const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // Get all students that are already in groups of the same type
-    const assignedStudents = groups
+    // Get the current group being edited (if any)
+    const currentGroup = groups.find(g => g.id === excludeGroupId);
+    const currentMembers = new Set(currentGroup?.members.map(m => m.carnet) || []);
+
+    // Get all students that are already in groups of the same activity type
+    const assignedStudentsInCategory = groups
       .filter(g => {
-        // For general groups, check all general groups
-        if (activityId === null || activityId === 'general') {
-          return g.id !== excludeGroupId && g.activityId === null;
+        if (!activityId || activityId === 'general') {
+          // For general groups, only check other general groups
+          return g.activityId === null && g.id !== excludeGroupId;
         }
-        // For activity groups, check only groups of that activity
-        return g.id !== excludeGroupId && g.activityId === activityId;
+        // For activity groups, check only groups of that specific activity
+        return g.activityId === activityId && g.id !== excludeGroupId;
       })
       .flatMap(g => g.members.map(m => m.carnet));
 
-    // Filter out students that are already in a group
-    return mockStudents.filter(s => !assignedStudents.includes(s.carnet));
+    // Create a Set for faster lookup of assigned students
+    const assignedSet = new Set(assignedStudentsInCategory);
+
+    // Return students that aren't in any other group of the same category
+    // and aren't already in the current group
+    return mockStudents.filter(student => 
+      !assignedSet.has(student.carnet) && !currentMembers.has(student.carnet)
+    );
   };
 
   const handleSave = (group: Group) => {
@@ -228,6 +238,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
             onSave={handleSave}
             group={editingGroup}
             getAvailableStudents={getAvailableStudents}
+            mode={editingGroup ? 'editManager' : 'newManager'}
           />
 
           <GroupTypeModal
@@ -292,6 +303,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
             onSave={handleSave}
             group={editingGroup}
             getAvailableStudents={getAvailableStudents}
+            mode={editingGroup ? 'editManager' : 'newManager'}
           />
 
           <GroupTypeModal
