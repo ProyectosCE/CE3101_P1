@@ -1,9 +1,8 @@
 ﻿using CEDigital_api.Models.Mongo;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using System.Security.Cryptography;
-using System.Text;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CEDigital_api.Data.Mongo
 {
@@ -18,19 +17,9 @@ namespace CEDigital_api.Data.Mongo
             _estudiantes = database.GetCollection<Estudiante>("estudiantes");
         }
 
-        // Método para calcular SHA256
-        private static string ComputeSha256Hash(string rawData)
+        private static string HashPassword(string password)
         {
-            using (SHA256 sha256Hash = SHA256.Create())
-            {
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-                StringBuilder builder = new StringBuilder();
-                foreach (var b in bytes)
-                {
-                    builder.Append(b.ToString("x2"));
-                }
-                return builder.ToString();
-            }
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         // Obtener todos los estudiantes
@@ -39,57 +28,83 @@ namespace CEDigital_api.Data.Mongo
             return await _estudiantes.Find(_ => true).ToListAsync();
         }
 
-        // Crear un nuevo estudiante (guardando password como hash)
+        // Crear un nuevo estudiante
         public async Task CreateAsync(Estudiante nuevoEstudiante)
         {
-            nuevoEstudiante.password = ComputeSha256Hash(nuevoEstudiante.password);
+            if (!string.IsNullOrEmpty(nuevoEstudiante.password))
+            {
+                nuevoEstudiante.password = HashPassword(nuevoEstudiante.password);
+            }
             await _estudiantes.InsertOneAsync(nuevoEstudiante);
         }
 
-        // Modificar un estudiante por carnet opcional actualiza pasword con hash
+        // Crear estudiante con validación de correo
+        public async Task CrearEstudianteAsync(string nombre, string correo, string password)
+        {
+            var existente = await GetByCorreoAsync(correo);
+            if (existente != null)
+                throw new System.Exception("Ya existe un estudiante con ese correo.");
+
+            var nuevoEstudiante = new Estudiante
+            {
+                nombre = nombre,
+                correo = correo,
+                password = HashPassword(password)
+            };
+
+            await CreateAsync(nuevoEstudiante);
+        }
+
+        // Actualizar un estudiante
         public async Task UpdateAsync(string carnet, Estudiante estudianteActualizado)
         {
             if (!string.IsNullOrEmpty(estudianteActualizado.password))
             {
-                estudianteActualizado.password = ComputeSha256Hash(estudianteActualizado.password);
+                estudianteActualizado.password = HashPassword(estudianteActualizado.password);
             }
             await _estudiantes.ReplaceOneAsync(e => e.carnet == carnet, estudianteActualizado);
         }
 
-        // Eliminar un estudiante por carnet
+        // Eliminar un estudiante
         public async Task DeleteAsync(string carnet)
         {
             await _estudiantes.DeleteOneAsync(e => e.carnet == carnet);
         }
 
-        // Obtener estudiante por cédula
+        // Obtener por cédula
         public async Task<Estudiante> GetByCedulaAsync(string cedula)
         {
             return await _estudiantes.Find(e => e.cedula == cedula).FirstOrDefaultAsync();
         }
 
-        // Obtener estudiantes por nombre (búsqueda parcial)
+        // Obtener por nombre (búsqueda parcial)
         public async Task<List<Estudiante>> GetByNombreAsync(string nombre)
         {
             return await _estudiantes.Find(e => e.nombre.ToLower().Contains(nombre.ToLower())).ToListAsync();
         }
 
-        // Validar login (cedula + password hashada)
+        // Validar login
         public async Task<bool> ValidateLoginAsync(string cedula, string password)
         {
-            string passwordHash = ComputeSha256Hash(password);
-            var estudiante = await _estudiantes.Find(e => e.cedula == cedula && e.password == passwordHash).FirstOrDefaultAsync();
-            return estudiante != null;
+            var estudiante = await GetByCedulaAsync(cedula);
+            if (estudiante == null) return false;
+            
+            return BCrypt.Net.BCrypt.Verify(password, estudiante.password);
         }
 
-        // Verificar si carnet ya existe 
+        // Verificar si carnet existe
         public async Task<bool> CarnetExistsAsync(string carnet)
         {
-            var count = await _estudiantes.CountDocumentsAsync(e => e.carnet == carnet);
-            return count > 0;
+            return await _estudiantes.CountDocumentsAsync(e => e.carnet == carnet) > 0;
+        }
+        
+        // Obtener por correo
+        public async Task<Estudiante> GetByCorreoAsync(string correo)
+        {
+            return await _estudiantes.Find(e => e.correo == correo).FirstOrDefaultAsync();
         }
 
-        // Obtener cantidad total de estudiantes
+        // Contar estudiantes
         public async Task<long> GetTotalCountAsync()
         {
             return await _estudiantes.CountDocumentsAsync(_ => true);

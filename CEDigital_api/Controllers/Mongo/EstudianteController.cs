@@ -17,7 +17,7 @@ namespace CEDigital_api.Controllers.Mongo
 
         // Obtener todos los estudiantes
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<List<Estudiante>>> GetAll()
         {
             var estudiantes = await _estudianteService.GetAllAsync();
             return Ok(estudiantes);
@@ -25,23 +25,46 @@ namespace CEDigital_api.Controllers.Mongo
 
         // Crear un nuevo estudiante
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Estudiante nuevoEstudiante)
+        public async Task<ActionResult> Create([FromBody] Estudiante estudiante)
         {
-            await _estudianteService.CreateAsync(nuevoEstudiante);
-            return CreatedAtAction(nameof(GetAll), new { Id = nuevoEstudiante.carnet }, nuevoEstudiante);
+            if (await _estudianteService.CarnetExistsAsync(estudiante.carnet))
+                return BadRequest("Ya existe un estudiante con ese carnet.");
+
+            await _estudianteService.CreateAsync(estudiante);
+            return CreatedAtAction(nameof(GetAll), new { carnet = estudiante.carnet }, estudiante);
+        }
+
+        // Actualizar un estudiante
+        [HttpPut("{carnet}")]
+        public async Task<ActionResult> Update(string carnet, [FromBody] Estudiante estudiante)
+        {
+            await _estudianteService.UpdateAsync(carnet, estudiante);
+            return NoContent();
         }
 
         // Eliminar un estudiante por carnet
         [HttpDelete("{carnet}")]
-        public async Task<IActionResult> Delete(string carnet)
+        public async Task<ActionResult> Delete(string carnet)
         {
-            var estudiante = await _estudianteService.GetAllAsync();
-            if (estudiante == null)
-            {
-                return NotFound();
-            }
             await _estudianteService.DeleteAsync(carnet);
             return NoContent();
+        }
+
+        // Obtener estudiante por cédula
+        [HttpGet("cedula/{cedula}")]
+        public async Task<ActionResult<Estudiante>> GetByCedula(string cedula)
+        {
+            var estudiante = await _estudianteService.GetByCedulaAsync(cedula);
+            if (estudiante == null) return NotFound();
+            return Ok(estudiante);
+        }
+
+        // Obtener estudiantes por nombre
+        [HttpGet("nombre/{nombre}")]
+        public async Task<ActionResult<List<Estudiante>>> GetByNombre(string nombre)
+        {
+            var estudiantes = await _estudianteService.GetByNombreAsync(nombre);
+            return Ok(estudiantes);
         }
     }
 }

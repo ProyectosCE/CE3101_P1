@@ -15,8 +15,8 @@ namespace CEDigital_api.Data.Mongo
             var client = new MongoClient(settings.ConnectionURI);
             var database = client.GetDatabase(settings.DatabaseName);
 
-            _estudiantes = database.GetCollection<Estudiante>("Estudiantes");
-            _profesores = database.GetCollection<Profesor>("Profesores");
+            _estudiantes = database.GetCollection<Estudiante>("estudiantes");
+            _profesores = database.GetCollection<Profesor>("profesores");
         }
 
         public async Task<(bool success, string role, string message)> LoginAsync(string correo, string password)
