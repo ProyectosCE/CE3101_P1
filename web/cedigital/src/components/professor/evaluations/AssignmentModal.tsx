@@ -6,6 +6,11 @@ import type { Assignment, Rubric } from '@/types/evaluation'
 import type { Group, GroupActivity } from '@/types/groups'
 import EvaluationGroupsModal from './EvaluationGroupsModal'
 
+interface GroupCreationResult {
+  exists: boolean
+  groupType?: GroupActivity
+}
+
 interface AssignmentModalProps {
   show: boolean
   onHide: () => void
@@ -14,7 +19,7 @@ interface AssignmentModalProps {
   rubrics: Rubric[]
   groups: Group[]
   groupTypes: GroupActivity[]
-  onCreateGroups: (activityName: string) => void
+  onCreateGroups: (activityName: string) => GroupCreationResult
   onEditGroups: (groupTypeId: string) => void
 }
 
@@ -42,6 +47,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     groupOption: undefined
   })
   const [showGroupsModal, setShowGroupsModal] = useState(false)
+  const [isModalHidden, setIsModalHidden] = useState(false)
 
   useEffect(() => {
     if (show) {
@@ -79,14 +85,40 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     return groupTypes.find(t => t.id === form.groupTypeId)?.name || ''
   }
 
-  // Handle editing groups
+  const handleCreateGroups = () => {
+    const result = onCreateGroups(form.title)
+    if (result.exists && result.groupType) {
+      const groupTypeId = result.groupType.id
+      setForm(prev => ({ 
+        ...prev, 
+        groupTypeId,
+        groupOption: 'existing'
+      }))
+    } else if (!result.exists) {
+      setIsModalHidden(true)
+      setShowGroupsModal(true)
+    }
+  }
+
   const handleEditGroups = (typeId: string) => {
+    setIsModalHidden(true)
     setShowGroupsModal(true)
+  }
+
+  const handleGroupsModalClose = () => {
+    setShowGroupsModal(false)
+    setIsModalHidden(false)
+  }
+
+  const handleEditComplete = () => {
+    // Refresh groups data
+    setShowGroupsModal(false)
+    setIsModalHidden(false)
   }
 
   return (
     <>
-      <Modal show={show} onHide={onHide} size="lg">
+      <Modal show={show && !isModalHidden} onHide={onHide} size="lg">
         <form onSubmit={handleSubmit}>
           <Modal.Header closeButton>
             <Modal.Title>
@@ -279,7 +311,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                           <button
                             type="button"
                             className="btn btn-outline-primary"
-                            onClick={() => onCreateGroups(form.title)}
+                            onClick={handleCreateGroups}
                           >
                             <FaPlus className="me-1" /> Gestionar grupos
                           </button>
@@ -302,12 +334,16 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
         </form>
       </Modal>
 
-      <EvaluationGroupsModal
-        show={showGroupsModal}
-        onHide={() => setShowGroupsModal(false)}
-        groupTypeId={form.groupTypeId || ''}
-        groupTypeName={getCurrentGroupTypeName()}
-      />
+      {showGroupsModal && (
+        <EvaluationGroupsModal
+          show={true}
+          onHide={handleGroupsModalClose}
+          groupTypeId={form.groupTypeId || ''}
+          groupTypeName={getCurrentGroupTypeName()}
+          onComplete={handleGroupsModalClose}
+          mode="edit"
+        />
+      )}
     </>
   )
 }

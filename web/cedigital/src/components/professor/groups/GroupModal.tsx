@@ -36,20 +36,25 @@ const GroupModal: React.FC<GroupModalProps> = ({
 
   useEffect(() => {
     if (show) {
-      if (mode.startsWith('edit')) {
+      if (mode.startsWith('edit') && group) {
+        // When editing, preserve all existing group data and merge with current members
         setForm({
-          ...group!,
-          activityId: group?.activityId || 'general'
+          ...group,
+          activityId: group.activityId || 'general'
         })
-        const availableStudentsList = getAvailableStudents(group?.activityId || null, group?.id)
+        
+        // Get available students and merge with current group members
+        const availableStudentsList = getAvailableStudents(group.activityId || null, group.id)
         setAvailableStudents(availableStudentsList)
       } else {
+        // For new groups, start fresh
         setForm({
           id: uuidv4(),
           name: '',
           activityId: mode === 'newEvaluationStatic' ? group?.activityId || null : null,
           members: []
         })
+        // Get all available students for this category
         const availableStudentsList = getAvailableStudents(
           mode === 'newEvaluationStatic' ? group?.activityId || null : null
         )

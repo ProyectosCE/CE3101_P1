@@ -2,42 +2,43 @@ import React, { useState, useEffect } from 'react'
 import { Modal } from 'react-bootstrap'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import { useGroupsStore } from '@/stores/groupsStore'
+import { useStudentsStore } from '@/stores/studentsStore'
 import type { Group, Student } from '@/types/groups'
 import GroupModal from '../groups/GroupModal'
-
-// Mock data - replace with API call
-const mockStudents: Student[] = [
-  { carnet: '2020123456', apellido1: 'Pérez', apellido2: 'García', nombre: 'Juan' },
-  { carnet: '2020654321', apellido1: 'Rodríguez', apellido2: 'López', nombre: 'María' },
-  { carnet: '2020111222', apellido1: 'González', apellido2: 'Martínez', nombre: 'Ana' },
-]
 
 interface EvaluationGroupsModalProps {
   show: boolean
   onHide: () => void
   groupTypeId: string
   groupTypeName: string
+  mode?: 'edit' | 'create'
+  onComplete?: () => void
 }
 
 const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
   show,
   onHide,
   groupTypeId,
-  groupTypeName
+  groupTypeName,
+  mode = 'edit',
+  onComplete
 }) => {
   const { groups, getGroupsByType, addGroup, updateGroup, deleteGroup } = useGroupsStore()
+  const { students } = useStudentsStore()
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
-  // Add state to track groups of this type
   const [typeGroups, setTypeGroups] = useState<Group[]>([])
 
-  // Update local groups when store groups change or when modal opens
   useEffect(() => {
     if (show) {
-      const currentTypeGroups = getGroupsByType(groupTypeId)
-      setTypeGroups(currentTypeGroups)
+      refreshGroups()
     }
-  }, [show, groupTypeId, groups, getGroupsByType])
+  }, [show, groupTypeId])
+
+  const refreshGroups = () => {
+    const currentGroups = getGroupsByType(groupTypeId)
+    setTypeGroups(currentGroups)
+  }
 
   const handleAdd = () => {
     setEditingGroup({
@@ -50,7 +51,11 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
   }
 
   const handleEdit = (group: Group) => {
-    setEditingGroup(group)
+    // Set the editing group with all its current data
+    setEditingGroup({
+      ...group,
+      activityId: groupTypeId
+    })
     setShowGroupModal(true)
   }
 
@@ -65,40 +70,57 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
   const handleSave = (group: Group) => {
     const updatedGroup = {
       ...group,
-      activityId: groupTypeId // Ensure the group is assigned to the correct category
+      activityId: groupTypeId
     }
     
     if (editingGroup?.id) {
       updateGroup(updatedGroup)
-      // Update local state
-      setTypeGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g))
     } else {
       addGroup(updatedGroup)
-      // Add to local state
-      setTypeGroups(prev => [...prev, updatedGroup])
     }
+    
+    refreshGroups()
     setShowGroupModal(false)
     setEditingGroup(null)
   }
 
   const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // Obtener todos los estudiantes asignados a grupos del mismo tipo
-    const assignedStudents = groups
+    // Get only students assigned to groups in this specific category
+    const studentsInThisCategory = groups
       .filter(g => g.activityId === groupTypeId && g.id !== excludeGroupId)
       .flatMap(g => g.members.map(m => m.carnet))
 
-    // Crear un conjunto para búsqueda rápida
-    const assignedSet = new Set(assignedStudents)
+    // If we're editing a group, include its current members in available list
+    const currentGroupMembers = excludeGroupId 
+      ? groups.find(g => g.id === excludeGroupId)?.members.map(m => m.carnet) || []
+      : []
 
-    // Filtrar estudiantes que no están asignados a ningún grupo del tipo actual
-    return mockStudents.filter((student: Student) => !assignedSet.has(student.carnet))
+    const assignedSet = new Set(studentsInThisCategory)
+
+    // Return students that:
+    // 1. Are not in other groups of this category
+    // 2. Or are in the current group being edited
+    return students.filter(student => 
+      !assignedSet.has(student.carnet) || currentGroupMembers.includes(student.carnet)
+    )
+  }
+
+  const handleClose = () => {
+    if (onComplete) {
+      onComplete()
+    } else {
+      onHide()
+    }
   }
 
   return (
     <>
-      <Modal show={show} onHide={onHide} size="xl">
+      <Modal show={show} onHide={handleClose} size="xl">
         <Modal.Header closeButton>
-          <Modal.Title>Grupos - {groupTypeName}</Modal.Title>
+          <Modal.Title>
+            {mode === 'create' ? 'Crear Grupos - ' : 'Grupos - '}
+            {groupTypeName}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="mb-4">
@@ -149,17 +171,19 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
         </Modal.Body>
       </Modal>
 
-      <GroupModal
-        show={showGroupModal}
-        onHide={() => {
-          setShowGroupModal(false)
-          setEditingGroup(null)
-        }}
-        onSave={handleSave}
-        group={editingGroup || { id: '', name: '', activityId: groupTypeId, members: [] }}
-        getAvailableStudents={getAvailableStudents}
-        mode={editingGroup?.id ? 'editEvaluationStatic' : 'newEvaluationStatic'}
-      />
+      {showGroupModal && (
+        <GroupModal
+          show={true}
+          onHide={() => {
+            setShowGroupModal(false)
+            setEditingGroup(null)
+          }}
+          onSave={handleSave}
+          group={editingGroup}
+          getAvailableStudents={getAvailableStudents}
+          mode={editingGroup ? 'editEvaluationStatic' : 'newEvaluationStatic'}
+        />
+      )}
     </>
   )
 }

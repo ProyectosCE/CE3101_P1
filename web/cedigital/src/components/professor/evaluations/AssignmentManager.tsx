@@ -4,6 +4,7 @@ import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import { v4 as uuidv4 } from 'uuid'
 import AssignmentModal from './AssignmentModal'
 import GroupManager from '../GroupManager'
+import EvaluationGroupsModal from './EvaluationGroupsModal'
 import { useGroupsStore } from '@/stores/groupsStore'
 import type { Group, GroupActivity } from '@/types/groups'
 
@@ -105,6 +106,19 @@ const AssignmentManager: React.FC = () => {
   }
 
   const handleCreateGroups = (activityName: string) => {
+    // Check if group type already exists
+    const existingGroupType = groupTypes.find(
+      type => type.name.toLowerCase() === activityName.toLowerCase()
+    )
+
+    if (existingGroupType) {
+      alert('Ya existe una categoría de grupos con este nombre.')
+      return {
+        exists: true,
+        groupType: existingGroupType
+      }
+    }
+
     const newGroupType: GroupActivity = {
       id: activityName.toLowerCase().replace(/\s+/g, '-'),
       name: activityName
@@ -114,17 +128,19 @@ const AssignmentManager: React.FC = () => {
     setSelectedGroupType(newGroupType.id)
     setShowGroupManager(true)
     setShowModal(false)
+    return { exists: false }
   }
 
   const handleGroupManagerClose = () => {
     setShowGroupManager(false)
-    setShowModal(true)
+    if (showModal) {
+      setShowModal(true)
+    }
   }
 
   const handleGroupManagerSave = (newGroups: Group[]) => {
     const currentGroups = groups.filter(g => g.activityId !== selectedGroupType)
     updateGroups([...currentGroups, ...newGroups])
-    handleGroupManagerClose()
   }
 
   const handleEditGroups = (groupTypeId: string) => {
@@ -201,23 +217,13 @@ const AssignmentManager: React.FC = () => {
       />
 
       {showGroupManager && (
-        <Modal show={true} onHide={handleGroupManagerClose} size="xl">
-          <Modal.Header closeButton>
-            <Modal.Title>
-              Gestionar Grupos - {groupManagerTitle}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="p-0">
-            <GroupManager
-              initialGroups={groups.filter(g => g.activityId === selectedGroupType)}
-              activityId={selectedGroupType}
-              activityName={groupManagerTitle}
-              onSave={handleGroupManagerSave}
-              standalone={false}
-              singleCategory={true}
-            />
-          </Modal.Body>
-        </Modal>
+        <EvaluationGroupsModal
+          show={true}
+          onHide={handleGroupManagerClose}
+          groupTypeId={selectedGroupType!}
+          groupTypeName={groupManagerTitle}
+          mode="create"
+        />
       )}
     </div>
   )

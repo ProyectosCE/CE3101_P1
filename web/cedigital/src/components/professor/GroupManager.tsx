@@ -4,13 +4,7 @@ import GroupModal from './groups/GroupModal'
 import GroupTypeModal from './groups/GroupTypeModal'
 import type { Student, GroupActivity, Group } from '@/types/groups'
 import { useGroupsStore } from '@/stores/groupsStore'
-
-// Mock data - replace with API call
-const mockStudents: Student[] = [
-  { carnet: '2020123456', apellido1: 'Pérez', apellido2: 'García', nombre: 'Juan' },
-  { carnet: '2020654321', apellido1: 'Rodríguez', apellido2: 'López', nombre: 'María' },
-  { carnet: '2020111222', apellido1: 'González', apellido2: 'Martínez', nombre: 'Ana' },
-]
+import { useStudentsStore } from '@/stores/studentsStore'
 
 interface GroupManagerProps {
   initialGroups?: Group[]
@@ -29,6 +23,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   standalone = true,
   singleCategory = false
 }) => {
+  const { students } = useStudentsStore()
   const { groups: allGroups, groupTypes, addGroup, updateGroup, deleteGroup, getGroupsByType, addGroupType, deleteGroupType } = useGroupsStore()
   const [groups, setGroups] = useState<Group[]>(
     singleCategory ? initialGroups : allGroups
@@ -49,28 +44,21 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   }
 
   const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // Get the current group being edited (if any)
     const currentGroup = groups.find(g => g.id === excludeGroupId);
     const currentMembers = new Set(currentGroup?.members.map(m => m.carnet) || []);
 
-    // Get all students that are already in groups of the same activity type
     const assignedStudentsInCategory = groups
       .filter(g => {
         if (!activityId || activityId === 'general') {
-          // For general groups, only check other general groups
           return g.activityId === null && g.id !== excludeGroupId;
         }
-        // For activity groups, check only groups of that specific activity
         return g.activityId === activityId && g.id !== excludeGroupId;
       })
       .flatMap(g => g.members.map(m => m.carnet));
 
-    // Create a Set for faster lookup of assigned students
     const assignedSet = new Set(assignedStudentsInCategory);
 
-    // Return students that aren't in any other group of the same category
-    // and aren't already in the current group
-    return mockStudents.filter(student => 
+    return students.filter(student => 
       !assignedSet.has(student.carnet) && !currentMembers.has(student.carnet)
     );
   };
