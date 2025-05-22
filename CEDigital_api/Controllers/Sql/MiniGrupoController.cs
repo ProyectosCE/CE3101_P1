@@ -1,138 +1,169 @@
 using CEDigital_api.Data.Sql;
+using CEDigital_api.Data.Mongo;
+using CEDigital_api.Models.Mongo;
 using CEDigital_api.Models.Sql;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
-
-namespace CEDigital_api.Controllers
+namespace CEDigital_api.Controllers.Sql
 {
     [ApiController]
-    [Route("api/grupos")]
-    public class MiniGruposController : ControllerBase
+    [Route("api/minigrupos")]
+    public class MiniGrupoController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly EstudianteService _estudianteService;
 
-        public MiniGruposController(AppDbContext context)
+        public MiniGrupoController(AppDbContext context, EstudianteService estudianteService)
         {
             _context = context;
+            _estudianteService = estudianteService;
         }
-        // por si aca x3
-        public class CrearMiniGrupoDTO
-        {
-            [Required]
-            public int idCategoria { get; set; }
-            [Required]
-            public string nombreGrupo { get; set; }
-            [Required]
-            public List<string> estudiantes { get; set; } = new();
-        }
-        public class MiniGrupoResponseDTO
-        {
-            public int id { get; set; }
-            public string nombre { get; set; }
-            public int idCategoria { get; set; }
-            public List<EstudianteDTO> estudiantes { get; set; } = new();
-        }
-        public class EstudianteDTO
-        {
-            public string carnet { get; set; }
-            public string nombre { get; set; }
-        }
-        // POST /api/grups
+        // POST: api/grupos
         [HttpPost]
-        public async Task<ActionResult<MiniGrupoResponseDTO>> CrearMiniGrupo([FromBody] CrearMiniGrupoDTO dto)
+        public async Task<IActionResult> CrearGrupo([FromBody] MiniGrupoCreateDto dto)
         {
-            var minigrupo = new MiniGrupo
+            var grupo = new MiniGrupo
             {
                 nombre_minigrupo = dto.nombreGrupo,
                 id_categoria = dto.idCategoria
             };
-            _context.MiniGrupo.Add(minigrupo);
+
+            _context.MiniGrupo.Add(grupo);
             await _context.SaveChangesAsync();
 
             foreach (var carnet in dto.estudiantes)
             {
-                _context.EstudianteXMiniGrupo.Add(new EstudianteXMiniGrupo
+                var relacion = new EstudianteXMiniGrupo
                 {
                     carnet_estudiante = carnet,
-                    id_minigrupo = minigrupo.id_minigrupo
-                });
+                    id_minigrupo = grupo.id_minigrupo
+                };
+                _context.EstudianteXMiniGrupo.Add(relacion);
             }
 
             await _context.SaveChangesAsync();
 
-            var estudiantes = await _context.Estudiante
-                .Where(e => dto.estudiantes.Contains(e.carnet_estudiante))
-                .Select(e => new EstudianteDTO
-                {
-                    carnet = e.carnet_estudiante,
-                    nombre = e.nombre
-                })
-                .ToListAsync();
-
-            return Ok(new MiniGrupoResponseDTO
-            {
-                id = minigrupo.id_minigrupo,
-                nombre = minigrupo.nombre_minigrupo,
-                idCategoria = minigrupo.id_categoria,
-                estudiantes = estudiantes
-            });
-        }
-        // PATCH /api/grupos/:id
-        [HttpPatch("{id}")]
-        public async Task<ActionResult<MiniGrupoResponseDTO>> EditarMiniGrupo(int id, [FromBody] CrearMiniGrupoDTO dto)
-        {
-            var grupo = await _context.MiniGrupo.FindAsync(id);
-            if (grupo == null) return NotFound();
-
-            grupo.nombre_minigrupo = dto.nombreGrupo;
-            _context.EstudianteXMiniGrupo.RemoveRange(
-                _context.EstudianteXMiniGrupo.Where(e => e.id_minigrupo == id)
-            );
-
+            var estudiantesDetalles = new List<object>();
             foreach (var carnet in dto.estudiantes)
             {
-                _context.EstudianteXMiniGrupo.Add(new EstudianteXMiniGrupo
+                var estudiante = await _estudianteService.GetByCarnetAsync(carnet);
+                if (estudiante != null)
                 {
-                    carnet_estudiante = carnet,
-                    id_minigrupo = id
-                });
+                    estudiantesDetalles.Add(new
+                    {
+                        carnet = estudiante.carnet,
+                        nombre = estudiante.nombre
+                    });
+                }
             }
 
-            await _context.SaveChangesAsync();
-
-            var estudiantes = await _context.Estudiante
-                .Where(e => dto.estudiantes.Contains(e.carnet_estudiante))
-                .Select(e => new EstudianteDTO
-                {
-                    carnet = e.carnet_estudiante,
-                    nombre = e.nombre
-                })
-                .ToListAsync();
-
-            return Ok(new MiniGrupoResponseDTO
+            return Ok(new
             {
                 id = grupo.id_minigrupo,
                 nombre = grupo.nombre_minigrupo,
                 idCategoria = grupo.id_categoria,
-                estudiantes = estudiantes
+                estudiantes = estudiantesDetalles
             });
         }
 
-        // DELETE /api/grupos/:id
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> EliminarMiniGrupo(int id)
+        // PATCH: api/grupos/{id}
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> EditarGrupo(int id, [FromBody] MiniGrupoUpdateDto dto)
         {
-            var grupo = await _context.MiniGrupo.FindAsync(id);
-            if (grupo == null) return NotFound();
+            var grupo = await _context.MiniGrupo
+                .Include(g => g.estudiantes)
+                .FirstOrDefaultAsync(g => g.id_minigrupo == id);
 
+            if (grupo == null)
+                return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.nombre))
+                grupo.nombre_minigrupo = dto.nombre;
+
+            if (dto.estudiantes != null)
+            {
+                // Eliminar relaciones existentes
+                _context.EstudianteXMiniGrupo.RemoveRange(
+                    _context.EstudianteXMiniGrupo.Where(e => e.id_minigrupo == id)
+                );
+
+                foreach (var carnet in dto.estudiantes)
+                {
+                    _context.EstudianteXMiniGrupo.Add(new EstudianteXMiniGrupo
+                    {
+                        carnet_estudiante = carnet,
+                        id_minigrupo = id
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            var estudiantesDetalles = new List<object>();
+            if (dto.estudiantes != null)
+            {
+                foreach (var carnet in dto.estudiantes)
+                {
+                    var estudiante = await _estudianteService.GetByCarnetAsync(carnet);
+                    if (estudiante != null)
+                    {
+                        estudiantesDetalles.Add(new
+                        {
+                            carnet = estudiante.carnet,
+                            nombre = estudiante.nombre
+                        });
+                    }
+                }
+            }
+
+            return Ok(new
+            {
+                id = grupo.id_minigrupo,
+                nombre = grupo.nombre_minigrupo,
+                idCategoria = grupo.id_categoria,
+                estudiantes = estudiantesDetalles
+            });
+        }
+
+        // DELETE: api/grupos/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarGrupo(int id)
+        {
+            var grupo = await _context.MiniGrupo
+                .Include(g => g.estudiantes)
+                .FirstOrDefaultAsync(g => g.id_minigrupo == id);
+
+            if (grupo == null)
+                return NotFound();
+
+            // Eliminar relaciones
             _context.EstudianteXMiniGrupo.RemoveRange(
                 _context.EstudianteXMiniGrupo.Where(e => e.id_minigrupo == id)
             );
+
+            // Eliminar grupo
             _context.MiniGrupo.Remove(grupo);
             await _context.SaveChangesAsync();
 
             return Ok(new { status = "ok" });
         }
+    }
+// pa arraglar errores
+    public class MiniGrupoCreateDto
+    {
+        
+        public int idCategoria { get; set; }
+
+     
+        public string nombreGrupo { get; set; } = string.Empty;
+
+      
+        public List<string> estudiantes { get; set; } = new();
+    }
+
+    public class MiniGrupoUpdateDto
+    {
+        public string? nombre { get; set; }
+        public List<string>? estudiantes { get; set; }
     }
 }
