@@ -1,9 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
     public class CategoriaGrupo
     {
+        [Key]
         public int id_categoria { get; set; }
         public string nombre_categoria { get; set; }
 
