@@ -4,7 +4,7 @@
     {
         public string carnet_estudiante { get; set; }
         public Estudiante? estudiante { get; set; }
-        public int id_mini_grupo { get; set; }
+        public int id_minigrupo { get; set; }
         public MiniGrupo? miniGrupo { get; set; }
     }
 }
