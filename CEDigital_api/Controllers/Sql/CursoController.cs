@@ -1,6 +1,7 @@
 ﻿using CEDigital_api.Data.Sql;
 using CEDigital_api.Models.Sql;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CEDigital_api.Controllers.Sql
@@ -10,9 +11,11 @@ namespace CEDigital_api.Controllers.Sql
     public class CursoController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public CursoController(AppDbContext context)
+        private readonly SqlService _sqlService;
+        public CursoController(AppDbContext context, SqlService sqlService)
         {
             _context = context;
+            _sqlService = sqlService;
         }
 
         // GET: api/curso
@@ -89,5 +92,78 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        // GET: api/curso/usuario
+        [HttpGet("usuario")]
+            public async Task<IActionResult> GetCursosByUsuario([FromQuery] string id, [FromQuery] string rol)
+            {
+                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(rol))
+                    return BadRequest("Debe especificar 'id' y 'rol' como parámetros.");
+
+                if (rol != "estudiante" && rol != "profesor")
+                    return BadRequest("El rol debe ser 'estudiante' o 'profesor'.");
+
+                if (rol == "estudiante")
+                {
+                    var estudiante = await _context.Estudiante.FindAsync(id);
+                    if (estudiante == null)
+                        return NotFound("Estudiante no encontrado.");
+                }
+                else if (rol == "profesor")
+                {
+                    var profesor = await _context.Profesor.FindAsync(id);
+                    if (profesor == null)
+                        return NotFound("Profesor no encontrado.");
+                }
+
+                var sql = _sqlService.LoadSqlQuery("Controllers/Sql/Queries/cursos_usuario.sql");
+
+                var connection = _context.Database.GetDbConnection();
+                await connection.OpenAsync();
+
+                var command = connection.CreateCommand();
+                command.CommandText = sql;
+                command.Parameters.Add(new SqlParameter("@rol", rol));
+                command.Parameters.Add(new SqlParameter("@id", id));
+
+                var result = new List<object>();
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var anio = Convert.ToInt32(reader["anio"]);
+                        var periodo = reader["periodo"].ToString();
+                        var new_periodo = "";
+
+                    if (periodo == "1")
+                    {
+                        new_periodo = "I";
+                    }
+                    else if (periodo == "2")
+                    {
+                        new_periodo = "II";
+                    }
+                    else 
+                    {
+                        new_periodo = periodo;
+                    }
+
+                    result.Add(new
+                        {
+                            codigoCurso = reader["codigoCurso"].ToString(),
+                            nombreCurso = reader["nombreCurso"].ToString(),
+                            numGrupo = Convert.ToInt32(reader["numGrupo"]),
+                            semestre = $"{anio}-{new_periodo}"
+                        });
+                    }
+                    
+                }
+
+            await connection.CloseAsync();
+
+                return Ok(result);
+            }
+
     }
 }

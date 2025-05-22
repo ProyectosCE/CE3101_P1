@@ -89,12 +89,14 @@ GO
 CREATE TABLE Estudiante (
     carnet_estudiante NVARCHAR(20) PRIMARY KEY
 );
+GO
 
 CREATE TABLE EstudianteXGrupo (
     id_grupo          INT NOT NULL,
     carnet_estudiante NVARCHAR(20) NOT NULL,
     PRIMARY KEY(id_grupo, carnet_estudiante)
 );
+GO
 
 CREATE TABLE ProfesorXGrupo (
     cedula_profesor            NVARCHAR(20) NOT NULL,
@@ -113,7 +115,7 @@ GO
 
 CREATE TABLE Semestre (
     id_semestre       INT IDENTITY(1,1) PRIMARY KEY,
-    año              INT NOT NULL,
+    anio              INT NOT NULL,
     periodo           CHAR(1) NOT NULL CHECK (Periodo IN ('1','2','V')),
     estado           NVARCHAR(100) NOT NULL DEFAULT 'inactivo',
 );
@@ -137,6 +139,7 @@ CREATE TABLE EstudianteXMiniGrupo (
     carnet_estudiante NVARCHAR(20) NOT NULL,
     PRIMARY KEY(id_minigrupo, carnet_estudiante)
 );
+GO
 
 
 -- Agregar las foreign keys --

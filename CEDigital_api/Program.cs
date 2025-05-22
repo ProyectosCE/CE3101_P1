@@ -19,6 +19,7 @@ builder.Services.Configure<MongoDbSettings>(
 builder.Services.AddSingleton<ProfesorService>();
 builder.Services.AddSingleton<EstudianteService>();
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<SqlService>();
 
 
 // SQL Server
