@@ -165,7 +165,7 @@ namespace CEDigital_api.Data.Sql
 
             // Estudiante(N) - MiniGrupo(M)
             modelBuilder.Entity<EstudianteXMiniGrupo>()
-                .HasKey(em => new { em.carnet_estudiante, em.id_mini_grupo });
+                .HasKey(em => new { em.carnet_estudiante, em.id_minigrupo });
 
             modelBuilder.Entity<EstudianteXMiniGrupo>()
                 .HasOne(em => em.estudiante)
@@ -175,7 +175,7 @@ namespace CEDigital_api.Data.Sql
             modelBuilder.Entity<EstudianteXMiniGrupo>()
                 .HasOne(em => em.miniGrupo)
                 .WithMany(mg => mg.estudiantes)
-                .HasForeignKey(em => em.id_mini_grupo);
+                .HasForeignKey(em => em.id_minigrupo);
         }
     }
 }

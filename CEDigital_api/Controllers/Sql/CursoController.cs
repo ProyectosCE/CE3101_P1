@@ -132,7 +132,7 @@ namespace CEDigital_api.Controllers.Sql
                 {
                     while (await reader.ReadAsync())
                     {
-                        var anio = Convert.ToInt32(reader["anio"]);
+                        var año = Convert.ToInt32(reader["año"]);
                         var periodo = reader["periodo"].ToString();
                         var new_periodo = "";
 
@@ -154,7 +154,7 @@ namespace CEDigital_api.Controllers.Sql
                             codigoCurso = reader["codigoCurso"].ToString(),
                             nombreCurso = reader["nombreCurso"].ToString(),
                             numGrupo = Convert.ToInt32(reader["numGrupo"]),
-                            semestre = $"{anio}-{new_periodo}"
+                            semestre = $"{año}-{new_periodo}"
                         });
                     }
                     

@@ -7,7 +7,8 @@ namespace CEDigital_api.Models.Sql
     {
         [Key]
         public int id_semestre { get; set; }
-        public int anio { get; set; }
+
+        public int año { get; set; }
         public string periodo { get; set; }
         public string estado { get; set; } = "inactivo";
 
