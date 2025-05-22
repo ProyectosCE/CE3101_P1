@@ -46,20 +46,8 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCursoById), new { id = curso.codigo_curso }, curso);
         }
 
-        // DELETE: api/curso/{codigo_curso}
-        [HttpDelete("{codigo_curso}")]
-        public async Task<IActionResult> DeleteCurso(string codigo_curso)
-        {
-            var curso = await _context.Curso.FindAsync(codigo_curso);
-            if (curso == null)
-                return NotFound();
-            _context.Curso.Remove(curso);
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        // PUT: api/curso/{codigo_curso}
-        [HttpPut("{codigo_curso}")]
+        // PATCH: api/curso/{codigo_curso}
+        [HttpPatch("{codigo_curso}")]
         public async Task<IActionResult> UpdateCurso(string codigo_curso, [FromBody] Curso curso)
         {
             if (codigo_curso != curso.codigo_curso)
@@ -69,6 +57,35 @@ namespace CEDigital_api.Controllers.Sql
                 return NotFound();
             existingCurso.nombre = curso.nombre;
             _context.Entry(existingCurso).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // PATCH: api/curso/{codigo_curso}/toggle
+        [HttpPatch("{codigo_curso}/toggle")]
+        public async Task<IActionResult> ToggleCurso(string codigo_curso)
+        {
+            var curso = await _context.Curso.FindAsync(codigo_curso);
+            if (curso == null)
+                return NotFound();
+            curso.estado = curso.estado == "activo" ? "inactivo" : "activo";
+            _context.Entry(curso).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // POST api/curso/upload-excel
+        // Falta
+
+
+        // DELETE: api/curso/{codigo_curso}
+        [HttpDelete("{codigo_curso}")]
+        public async Task<IActionResult> DeleteCurso(string codigo_curso)
+        {
+            var curso = await _context.Curso.FindAsync(codigo_curso);
+            if (curso == null)
+                return NotFound();
+            _context.Curso.Remove(curso);
             await _context.SaveChangesAsync();
             return NoContent();
         }

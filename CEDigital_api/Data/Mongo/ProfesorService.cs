@@ -86,5 +86,11 @@ namespace CEDigital_api.Data.Mongo
         
             return BCrypt.Net.BCrypt.Verify(password, profesor.password);
         }
+
+        // Obtener por cedula
+        public async Task<Profesor> GetByCedulaAsync(string cedula)
+        {
+            return await _profesores.Find(p => p.cedula == cedula).FirstOrDefaultAsync();
+        }
     }
 }

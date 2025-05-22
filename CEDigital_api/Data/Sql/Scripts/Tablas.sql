@@ -8,7 +8,8 @@ GO
 
 CREATE TABLE Carrera (
     codigo_carrera    NVARCHAR(10) PRIMARY KEY,
-    nombre            NVARCHAR(100) NOT NULL
+    nombre            NVARCHAR(100) NOT NULL,
+    estado           NVARCHAR(100) NOT NULL DEFAULT 'activo',
 );
 GO
 
@@ -16,7 +17,8 @@ CREATE TABLE Curso (
     codigo_curso      NVARCHAR(10) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
     creditos          INT NOT NULL,
-    codigo_carrera    NVARCHAR(10) NOT NULL
+    codigo_carrera    NVARCHAR(10) NOT NULL,
+    estado           NVARCHAR(100) NOT NULL DEFAULT 'inactivo',
 );
 GO
 
@@ -55,7 +57,8 @@ CREATE TABLE Grupo (
     id_grupo          INT IDENTITY(1,1) PRIMARY KEY,
     numero_grupo      INT NOT NULL,
     codigo_curso      NVARCHAR(10) NOT NULL,
-    id_semestre       INT NOT NULL
+    id_semestre       INT NOT NULL,
+    estado           NVARCHAR(100) NOT NULL DEFAULT 'activo',
 );
 GO
 
@@ -63,7 +66,7 @@ CREATE TABLE Nota (
     id_entregable        INT PRIMARY KEY,
     calificacion         DECIMAL(5,2) NOT NULL,
     observaciones        NVARCHAR(200) NULL,
-    estado               BIT NOT NULL DEFAULT 1,
+    estado               NVARCHAR(100) NOT NULL DEFAULT 'inactivo',
     carnet_estudiante    NVARCHAR(20) NOT NULL
 );
 GO
@@ -111,7 +114,8 @@ GO
 CREATE TABLE Semestre (
     id_semestre       INT IDENTITY(1,1) PRIMARY KEY,
     año              INT NOT NULL,
-    periodo           CHAR(1) NOT NULL CHECK (Periodo IN ('1','2','V'))
+    periodo           CHAR(1) NOT NULL CHECK (Periodo IN ('1','2','V')),
+    estado           NVARCHAR(100) NOT NULL DEFAULT 'inactivo',
 );
 GO
 

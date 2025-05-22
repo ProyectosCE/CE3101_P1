@@ -109,5 +109,11 @@ namespace CEDigital_api.Data.Mongo
         {
             return await _estudiantes.CountDocumentsAsync(_ => true);
         }
-    }
+
+        // Obtener estudiante por carnet
+        public async Task<Estudiante> GetByCarnetAsync(string carnet)
+        {
+            return await _estudiantes.Find(e => e.carnet == carnet).FirstOrDefaultAsync();
+
+        }
 }

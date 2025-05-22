@@ -23,6 +23,7 @@ namespace CEDigital_api.Controllers.Mongo
             return Ok(estudiantes);
         }
 
+        // POST: api/estudiantes
         // Crear un nuevo estudiante
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] Estudiante estudiante)
@@ -34,13 +35,34 @@ namespace CEDigital_api.Controllers.Mongo
             return CreatedAtAction(nameof(GetAll), new { carnet = estudiante.carnet }, estudiante);
         }
 
-        // Actualizar un estudiante
-        [HttpPut("{carnet}")]
+        // PATCH: api/estudiantes/{carnet}
+        // Actualizar un estudiante por carnet
+        [HttpPatch("{carnet}")]
         public async Task<ActionResult> Update(string carnet, [FromBody] Estudiante estudiante)
         {
+            if (carnet != estudiante.carnet)
+                return BadRequest("El carnet no coincide.");
+            var existente = await _estudianteService.GetByCarnetAsync(carnet);
+            if (existente == null) return NotFound();
             await _estudianteService.UpdateAsync(carnet, estudiante);
             return NoContent();
         }
+
+        // PATCH: api/estudiantes/{carnet}/toggle
+        // Cambiar el estado de un estudiante por carnet
+        [HttpPatch("{carnet}/toggle")]
+        public async Task<ActionResult> Toggle(string carnet)
+        {
+            var estudiante = await _estudianteService.GetByCedulaAsync(carnet);
+            if (estudiante == null)
+                return NotFound("Estudiante no encontrado.");
+            estudiante.estado = estudiante.estado == "activo" ? "inactivo" : "activo";
+            await _estudianteService.UpdateAsync(carnet, estudiante);
+            return NoContent();
+        }
+
+        // POST: api/estudiantes/upload-excel
+        // Falta
 
         // Eliminar un estudiante por carnet
         [HttpDelete("{carnet}")]
@@ -57,14 +79,6 @@ namespace CEDigital_api.Controllers.Mongo
             var estudiante = await _estudianteService.GetByCedulaAsync(cedula);
             if (estudiante == null) return NotFound();
             return Ok(estudiante);
-        }
-
-        // Obtener estudiantes por nombre
-        [HttpGet("nombre/{nombre}")]
-        public async Task<ActionResult<List<Estudiante>>> GetByNombre(string nombre)
-        {
-            var estudiantes = await _estudianteService.GetByNombreAsync(nombre);
-            return Ok(estudiantes);
         }
     }
 }

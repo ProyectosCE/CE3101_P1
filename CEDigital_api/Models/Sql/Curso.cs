@@ -9,6 +9,7 @@ namespace CEDigital_api.Models.Sql
         public string codigo_curso { get; set; }
         public string nombre { get; set; }
         public int creditos { get; set; }
+        public string estado { get; set; } = "inactivo";
 
         [JsonIgnore]
         public List<Grupo> grupos { get; set; } = new();

@@ -20,6 +20,7 @@ namespace CEDigital_api.Models.Mongo
         public string password { get; set; }
         [BsonElement("isAdmin")]
         public bool IsAdmin { get; set; } = false;
+        public string estado { get; set; } = "activo";
 
     }
 }

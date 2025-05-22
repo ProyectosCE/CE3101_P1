@@ -8,6 +8,7 @@ namespace CEDigital_api.Models.Sql
         [Key]
         public int id_grupo { get; set; }
         public int numero_grupo { get; set; }
+        public string estado { get; set; } = "activo";
 
         [JsonIgnore]
         public List<Rubro> rubros { get; set; } = new();
