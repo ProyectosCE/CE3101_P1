@@ -15,10 +15,14 @@
 
   <ItemGroup>
     <None Remove="Controllers\Sql\Queries\cursos_usuario.sql" />
+    <None Remove="Controllers\Sql\Queries\noticias_usuario.sql" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Controllers\Sql\Queries\cursos_usuario.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Controllers\Sql\Queries\noticias_usuario.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

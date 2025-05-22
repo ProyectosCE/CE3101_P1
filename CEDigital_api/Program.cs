@@ -22,7 +22,7 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SqlService>();
 builder.Services.AddScoped<SqlEstudianteService>();
 builder.Services.AddScoped<SqlProfesorService>();
-builder.Services.AddScoped<MongoSeeder>();
+//builder.Services.AddScoped<MongoSeeder>();
 
 
 // SQL Server

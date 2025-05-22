@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -12,8 +13,10 @@ namespace CEDigital_api.Models.Sql
 
         // Foreign Keys
         public int id_grupo { get; set; }
+        [JsonIgnore]
         public Grupo? grupo { get; set; }
         public string cedula_profesor { get; set; }
+        [JsonIgnore]
         public Profesor? profesor { get; set; }
     }
 }

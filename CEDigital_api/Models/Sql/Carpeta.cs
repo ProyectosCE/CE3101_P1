@@ -14,8 +14,10 @@ namespace CEDigital_api.Models.Sql
 
         // Foreign Keys
         public int id_grupo { get; set; }
+        [JsonIgnore]
         public Grupo? grupo { get; set; }
-        public string cedula_profesor { get; set; }
+        public string cedula_profesor { get; set; } = "0";
+        [JsonIgnore]
         public Profesor? profesor { get; set; }
 
 
