@@ -88,7 +88,7 @@ namespace CEDigital_api.Data.Mongo
         {
             var estudiante = await GetByCedulaAsync(cedula);
             if (estudiante == null) return false;
-            
+
             return BCrypt.Net.BCrypt.Verify(password, estudiante.password);
         }
 
@@ -97,7 +97,7 @@ namespace CEDigital_api.Data.Mongo
         {
             return await _estudiantes.CountDocumentsAsync(e => e.carnet == carnet) > 0;
         }
-        
+
         // Obtener por correo
         public async Task<Estudiante> GetByCorreoAsync(string correo)
         {
@@ -116,4 +116,5 @@ namespace CEDigital_api.Data.Mongo
             return await _estudiantes.Find(e => e.carnet == carnet).FirstOrDefaultAsync();
 
         }
+    }
 }
