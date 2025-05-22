@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 import ExcelUploader from './ExcelUploader'
 import * as XLSX from 'xlsx'
+import {
+  createProfesor,
+  uploadProfesoresExcel,
+  getProfesores,
+} from '@/Functions/professorsApi'
 
 interface Professor {
   id: string
@@ -10,7 +15,7 @@ interface Professor {
   telefono: string
 }
 
-const ProfessorManager: React.FC = () => {
+const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
   const [profs, setProfs] = useState<Professor[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [newProf, setNewProf] = useState<Omit<Professor, 'id'>>({
@@ -27,55 +32,19 @@ const ProfessorManager: React.FC = () => {
   const handleFileSelect = (file: File) => setSelectedFile(file)
 
   // Importar desde Excel con validación
-  const confirmImport = () => {
+  const confirmImport = async () => {
     if (!selectedFile) {
       alert('No hay archivo seleccionado.')
       return
     }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const data = new Uint8Array((e.target!.result as ArrayBuffer))
-      const wb = XLSX.read(data, { type: 'array' })
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet)
-
-      const existingCedulas = new Set(profs.map(p => p.cedula))
-      const newSet = new Set<string>()
-      const imported: Professor[] = []
-      let skipped = 0
-
-      rows.forEach((row, i) => {
-        const ced = String(row['Cédula'] ?? '').trim()
-        const nom = String(row['Nombre'] ?? '').trim()
-        const em = String(row['Correo electrónico'] ?? '').trim()
-        const tel = String(row['Teléfono'] ?? '').trim()
-
-        // Validaciones básicas
-        if (!ced || !nom || !em || !tel) { skipped++; return }
-        if (!cedulaRegex.test(ced)) { skipped++; return }
-        if (!telefonoRegex.test(tel)) { skipped++; return }
-        if (existingCedulas.has(ced) || newSet.has(ced)) { skipped++; return }
-
-        imported.push({
-          id: String(profs.length + imported.length + 1),
-          cedula: ced,
-          nombre: nom,
-          email: em,
-          telefono: tel,
-        })
-        newSet.add(ced)
-      })
-
-      if (imported.length) {
-        setProfs(prev => [...prev, ...imported])
-        alert(`Se importaron ${imported.length} profesor(es).`)
-      }
-      if (skipped) {
-        alert(`Se omitieron ${skipped} fila(s) por datos inválidos o duplicados.`)
-      }
+    try {
+      await uploadProfesoresExcel(selectedFile)
+      alert('Archivo enviado al servidor para procesamiento.')
       setSelectedFile(null)
+      // Opcional: recargar lista de profesores desde el backend aquí
+    } catch (err) {
+      alert('Error al subir el archivo.')
     }
-    reader.readAsArrayBuffer(selectedFile)
   }
 
   // Cambio en formulario manual
@@ -84,8 +53,8 @@ const ProfessorManager: React.FC = () => {
     setNewProf(p => ({ ...p, [name]: value }))
   }
 
-  // Agregar manual con validación
-  const addManual = () => {
+  // Agregar manual con validación y API
+  const addManual = async () => {
     const { cedula, nombre, email, telefono } = newProf
     if (!cedula || !nombre || !email || !telefono) {
       alert('Todos los campos son obligatorios.')
@@ -103,17 +72,44 @@ const ProfessorManager: React.FC = () => {
       alert('Ya existe un profesor con esa cédula.')
       return
     }
-    const entry: Professor = {
-      id: String(profs.length + 1),
-      cedula,
-      nombre,
-      email,
-      telefono,
+    try {
+      await createProfesor({
+        cedula,
+        nombre,
+        correo: email,
+        telefono,
+      })
+      const entry: Professor = {
+        id: String(profs.length + 1),
+        cedula,
+        nombre,
+        email,
+        telefono,
+      }
+      setProfs(prev => [...prev, entry])
+      setNewProf({ cedula: '', nombre: '', email: '', telefono: '' })
+      alert('Profesor agregado correctamente.')
+    } catch (err) {
+      alert('Error al agregar profesor.')
     }
-    setProfs(prev => [...prev, entry])
-    setNewProf({ cedula: '', nombre: '', email: '', telefono: '' })
-    alert('Profesor agregado correctamente.')
   }
+
+  React.useEffect(() => {
+    // Cargar profesores cada vez que reloadKey cambie
+    getProfesores()
+      .then((data) => {
+        setProfs(
+          (data as any[]).map((p, idx) => ({
+            id: p.id?.toString() ?? (idx + 1).toString(),
+            cedula: p.cedula,
+            nombre: p.nombre,
+            email: p.correo,
+            telefono: p.telefono,
+          }))
+        )
+      })
+      .catch(() => setProfs([]))
+  }, [reloadKey])
 
   return (
     <div>

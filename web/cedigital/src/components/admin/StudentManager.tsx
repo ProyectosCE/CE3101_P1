@@ -2,6 +2,11 @@
 import React, { useState } from 'react'
 import ExcelUploader from './ExcelUploader'
 import * as XLSX from 'xlsx'
+import {
+  createEstudiante,
+  uploadEstudiantesExcel,
+  getEstudiantes,
+} from '@/Functions/studentsApi'
 
 interface Student {
   id: string
@@ -12,7 +17,7 @@ interface Student {
   telefono: string
 }
 
-const StudentManager: React.FC = () => {
+const StudentManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
   const [students, setStudents] = useState<Student[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [newStud, setNewStud] = useState<Omit<Student, 'id'>>({
@@ -32,68 +37,19 @@ const StudentManager: React.FC = () => {
   const handleFileSelect = (file: File) => setSelectedFile(file)
 
   // Confirmar importación desde Excel
-  const confirmImport = () => {
+  const confirmImport = async () => {
     if (!selectedFile) {
       alert('No hay archivo seleccionado.')
       return
     }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const data = new Uint8Array((e.target!.result as ArrayBuffer))
-      const wb = XLSX.read(data, { type: 'array' })
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet)
-
-      const existingCedulas = new Set(students.map(s => s.cedula))
-      const existingCarnets = new Set(students.map(s => s.carnet))
-      const newCed = new Set<string>()
-      const newCar = new Set<string>()
-      const imported: Student[] = []
-      let skipped = 0
-
-      rows.forEach((row) => {
-        const car = String(row['Carné'] ?? '').trim()
-        const ced = String(row['Cédula'] ?? '').trim()
-        const nom = String(row['Nombre'] ?? '').trim()
-        const em  = String(row['Correo electrónico'] ?? '').trim()
-        const tel = String(row['Teléfono'] ?? '').trim()
-
-        // Verificar campos no vacíos
-        if (!car || !ced || !nom || !em || !tel) { skipped++; return }
-        // Validar formatos
-        if (!carnetRegex.test(car)) { skipped++; return }
-        if (!cedulaRegex.test(ced))   { skipped++; return }
-        if (!telefonoRegex.test(tel)) { skipped++; return }
-        // No duplicados
-        if (
-          existingCedulas.has(ced) ||
-          existingCarnets.has(car) ||
-          newCed.has(ced) ||
-          newCar.has(car)
-        ) { skipped++; return }
-
-        imported.push({
-          id: String(students.length + imported.length + 1),
-          carnet: car,
-          cedula: ced,
-          nombre: nom,
-          email: em,
-          telefono: tel,
-        })
-        newCed.add(ced)
-        newCar.add(car)
-      })
-
-      if (imported.length) {
-        setStudents(prev => [...prev, ...imported])
-        alert(`Se importaron ${imported.length} estudiante(s) correctamente.`)
-      }
-      if (skipped) {
-        alert(`Se omitieron ${skipped} fila(s) por datos inválidos o duplicados.`)
-      }
+    try {
+      await uploadEstudiantesExcel(selectedFile)
+      alert('Archivo enviado al servidor para procesamiento.')
       setSelectedFile(null)
+      // Opcional: recargar lista de estudiantes desde el backend aquí
+    } catch (err) {
+      alert('Error al subir el archivo.')
     }
-    reader.readAsArrayBuffer(selectedFile)
   }
 
   // Manejo de formulario manual
@@ -102,7 +58,7 @@ const StudentManager: React.FC = () => {
     setNewStud(s => ({ ...s, [name]: value }))
   }
 
-  const addManual = () => {
+  const addManual = async () => {
     const { carnet, cedula, nombre, email, telefono } = newStud
     // Campos obligatorios
     if (!carnet || !cedula || !nombre || !email || !telefono) {
@@ -131,18 +87,48 @@ const StudentManager: React.FC = () => {
       return
     }
 
-    const entry: Student = {
-      id: String(students.length + 1),
-      carnet,
-      cedula,
-      nombre,
-      email,
-      telefono,
+    try {
+      await createEstudiante({
+        carnet,
+        cedula,
+        nombre,
+        correo: email,
+        telefono,
+      })
+      const entry: Student = {
+        id: String(students.length + 1),
+        carnet,
+        cedula,
+        nombre,
+        email,
+        telefono,
+      }
+      setStudents(prev => [...prev, entry])
+      setNewStud({ carnet: '', cedula: '', nombre: '', email: '', telefono: '' })
+      alert('Estudiante agregado correctamente.')
+    } catch (err) {
+      alert('Error al agregar estudiante.')
     }
-    setStudents(prev => [...prev, entry])
-    setNewStud({ carnet: '', cedula: '', nombre: '', email: '', telefono: '' })
-    alert('Estudiante agregado correctamente.')
   }
+
+  React.useEffect(() => {
+    // Cargar estudiantes cada vez que reloadKey cambie
+    getEstudiantes()
+      .then((data) => {
+        // Ajusta el mapeo según la estructura real de la respuesta
+        setStudents(
+          (data as any[]).map((s, idx) => ({
+            id: s.id?.toString() ?? (idx + 1).toString(),
+            carnet: s.carnet,
+            cedula: s.cedula,
+            nombre: s.nombre,
+            email: s.correo,
+            telefono: s.telefono,
+          }))
+        )
+      })
+      .catch(() => setStudents([]))
+  }, [reloadKey])
 
   return (
     <div>

@@ -13,6 +13,7 @@ const AdminDashboard: React.FC = () => {
   const [view, setView] = useState<
     'courses' | 'schools' | 'semester' | 'groups' | 'professors' | 'students'
   >('courses')
+  const [studentTabKey, setStudentTabKey] = useState(0)
   const user = useAuthStore((state) => state.user)
 
   return (
@@ -64,7 +65,10 @@ const AdminDashboard: React.FC = () => {
           <li className="nav-item">
             <button
               className={`nav-link ${view === 'students' ? 'active' : ''}`}
-              onClick={() => setView('students')}
+              onClick={() => {
+                setView('students')
+                setStudentTabKey(k => k + 1)
+              }}
             >
               Gestión de Estudiantes
             </button>
@@ -77,7 +81,7 @@ const AdminDashboard: React.FC = () => {
           {view === 'semester'    && <SemesterInitializer />}
           {view === 'groups'      && <GroupManager />}
           {view === 'professors'  && <ProfessorManager />}
-          {view === 'students'    && <StudentManager />}
+          {view === 'students'    && <StudentManager reloadKey={studentTabKey} />}
         </div>
       </div>
     </ProtectedRoute>
