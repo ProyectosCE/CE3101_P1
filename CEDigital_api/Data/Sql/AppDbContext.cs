@@ -24,6 +24,10 @@ namespace CEDigital_api.Data.Sql
         public DbSet<Rubro> Rubro { get; set; }
         public DbSet<Semestre> Semestre { get; set; }
 
+        public DbSet<EstudianteXMiniGrupo> EstudianteXMiniGrupo { get; set; }
+        public DbSet<MiniGrupo> MiniGrupo { get; set; }
+        public DbSet<CategoriaGrupo> CategoriaGrupo { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -116,6 +120,19 @@ namespace CEDigital_api.Data.Sql
                 .WithMany(e => e.entregables)
                 .HasForeignKey(e => e.carnet_estudiante);
 
+            // CategoriaGrupo(1) - MiniGrupo(N)
+            modelBuilder.Entity<MiniGrupo>()
+                .HasOne(mg => mg.categoriagrupo)
+                .WithMany(cg => cg.minigrupos)
+                .HasForeignKey(mg => mg.id_categoria);
+
+            // CategoriaGrupo(1) - Evaluacion(N)
+            modelBuilder.Entity<Evaluacion>()
+                .HasOne(e => e.categoria)
+                .WithMany(cg => cg.evaluaciones)
+                .HasForeignKey(e => e.id_categoria);
+
+
             //========== Relaciones N a N ===================
 
             // Profesor(N) - Grupo(M)
@@ -145,6 +162,20 @@ namespace CEDigital_api.Data.Sql
                 .HasOne(eg => eg.grupo)
                 .WithMany(g => g.estudiantes)
                 .HasForeignKey(eg => eg.id_grupo);
+
+            // Estudiante(N) - MiniGrupo(M)
+            modelBuilder.Entity<EstudianteXMiniGrupo>()
+                .HasKey(em => new { em.carnet_estudiante, em.id_minigrupo });
+
+            modelBuilder.Entity<EstudianteXMiniGrupo>()
+                .HasOne(em => em.estudiante)
+                .WithMany(e => e.minigrupos)
+                .HasForeignKey(em => em.carnet_estudiante);
+
+            modelBuilder.Entity<EstudianteXMiniGrupo>()
+                .HasOne(em => em.minigrupo)
+                .WithMany(mg => mg.estudiantes)
+                .HasForeignKey(em => em.id_minigrupo);
         }
     }
 }

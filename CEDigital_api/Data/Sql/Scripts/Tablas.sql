@@ -46,7 +46,8 @@ CREATE TABLE Evaluacion (
     fecha_entrega         DATETIME NOT NULL,
     tipo                  NVARCHAR(50) NOT NULL,
     archivo_especificacion NVARCHAR(200) NULL,
-    id_rubro              INT NOT NULL
+    id_rubro              INT NOT NULL,
+    id_categoria          INT NOT NULL
 );
 GO
 
@@ -113,6 +114,26 @@ CREATE TABLE Semestre (
     periodo           CHAR(1) NOT NULL CHECK (Periodo IN ('1','2','V'))
 );
 GO
+
+CREATE TABLE MiniGrupo (
+    id_minigrupo      INT IDENTITY(1,1) PRIMARY KEY,
+    nombre_minigrupo  NVARCHAR(100) NOT NULL,
+    id_categoria      INT NOT NULL
+);
+GO
+
+CREATE TABLE CategoriaGrupo (
+    id_categoria      INT IDENTITY(1,1) PRIMARY KEY,
+    nombre_categoria  NVARCHAR(100) NOT NULL
+);
+GO
+
+CREATE TABLE EstudianteXMiniGrupo (
+    id_minigrupo      INT NOT NULL,
+    carnet_estudiante NVARCHAR(20) NOT NULL,
+    PRIMARY KEY(id_minigrupo, carnet_estudiante)
+);
+
 
 -- Agregar las foreign keys --
 
@@ -192,5 +213,21 @@ ALTER TABLE ProfesorXGrupo
 ALTER TABLE Rubro
     ADD CONSTRAINT FK_Rubro_Grupo FOREIGN KEY(id_grupo)
         REFERENCES Grupo(id_grupo);
+
+ALTER TABLE EstudianteXMiniGrupo
+    ADD CONSTRAINT FK_EstudianteXMiniGrupo_MiniGrupo FOREIGN KEY(id_minigrupo)
+        REFERENCES MiniGrupo(id_minigrupo);
+
+ALTER TABLE EstudianteXMiniGrupo
+    ADD CONSTRAINT FK_EstudianteXMiniGrupo_Estudiante FOREIGN KEY(carnet_estudiante)
+        REFERENCES Estudiante(carnet_estudiante);
+
+ALTER TABLE MiniGrupo
+    ADD CONSTRAINT FK_MiniGrupo_CategoriaGrupo FOREIGN KEY(id_categoria)
+        REFERENCES CategoriaGrupo(id_categoria);
+
+ALTER TABLE Evaluacion
+    ADD CONSTRAINT FK_Evaluacion_CategoriaGrupo FOREIGN KEY(id_categoria)
+        REFERENCES CategoriaGrupo(id_categoria);
 
 GO

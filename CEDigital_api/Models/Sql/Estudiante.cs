@@ -13,6 +13,9 @@ namespace CEDigital_api.Models.Sql
         public ICollection<EstudiantexGrupo> grupos { get; set; } = new List<EstudiantexGrupo>();
 
         [JsonIgnore]
+        public ICollection<EstudianteXMiniGrupo> minigrupos { get; set; } = new List<EstudianteXMiniGrupo>();
+
+        [JsonIgnore]
         public List<Entregable> entregables { get; set; } = new();
 
         [JsonIgnore]
