@@ -20,7 +20,7 @@ namespace CEDigital_api.Models.Sql
         public int id_rubro { get; set; }
         public Rubro? rubro { get; set; }
 
-        public int id_categoria { get; set; }
+        public int? id_categoria { get; set; }
         public CategoriaGrupo? categoria { get; set; }
 
     }

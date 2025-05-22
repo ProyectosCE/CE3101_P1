@@ -116,5 +116,12 @@ namespace CEDigital_api.Data.Mongo
             return await _estudiantes.Find(e => e.carnet == carnet).FirstOrDefaultAsync();
 
         }
+
+        // Obtener múltiples estudiantes por una lista de carnets
+        public async Task<List<Estudiante>> GetByCarnetsAsync(List<string> carnets)
+        {
+            return await _estudiantes.Find(e => carnets.Contains(e.carnet)).ToListAsync();
+        }
+
     }
 }
