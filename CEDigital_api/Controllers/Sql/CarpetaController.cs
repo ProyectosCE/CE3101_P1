@@ -30,8 +30,20 @@ namespace CEDigital_api.Controllers.Sql
                 return NotFound();
             return Ok(carpeta);
         }
+
+        // GET: api/carpeta/grupo/{id_grupo}
+        [HttpGet("grupo/{id_grupo}")]
+        public async Task<IActionResult> GetCarpetasByGrupo(int id_grupo)
+        {
+            var carpetas = await _context.Carpeta.Where(c => c.id_grupo == id_grupo).ToListAsync();
+            if (carpetas == null || carpetas.Count == 0)
+                return NotFound("No se encontraron carpetas para el grupo especificado.");
+            return Ok(carpetas);
+        }
+
+
         //POST: api/carpeta
-       [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> AddCarpeta([FromBody] Carpeta carpeta)
         {
             if (carpeta == null)
@@ -41,15 +53,20 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCarpetaById), new { id = carpeta.id_carpeta }, carpeta);
         }
 
-        //POST: api/carpeta/{cedula_profesor}
-        [HttpPost("{cedula_profesor}")]
-        public async Task<IActionResult> AddCarpetaByCedula(string cedula_profesor, [FromBody] Carpeta carpeta)
+        //POST: api/carpeta/{id_grupo}/{cedula_profesor}
+        // Agrega una carpeta a un profesor por cedula y id_grupo
+        [HttpPost("{id_grupo}/{cedula_profesor}")]
+        public async Task<IActionResult> AddCarpetaToProfesor(int id_grupo, string cedula_profesor, [FromBody] Carpeta carpeta)
         {
             if (carpeta == null)
                 return BadRequest("Carpeta no puede ser null.");
+            var grupo = await _context.Grupo.FindAsync(id_grupo);
+            if (grupo == null)
+                return NotFound("Grupo no encontrado.");
             var profesor = await _context.Profesor.FindAsync(cedula_profesor);
             if (profesor == null)
                 return NotFound("Profesor no encontrado.");
+            carpeta.id_grupo = id_grupo;
             carpeta.cedula_profesor = cedula_profesor;
             await _context.Carpeta.AddAsync(carpeta);
             await _context.SaveChangesAsync();
@@ -64,7 +81,7 @@ namespace CEDigital_api.Controllers.Sql
             var carpeta = await _context.Carpeta.FindAsync(id);
             if (carpeta == null)
                 return NotFound();
-            if (carpeta.cedula_profesor == "0")
+            if (carpeta.cedula_profesor == null)
                 return BadRequest("No se puede eliminar carpeta. Solo si fue creada por un profesor.");
             _context.Carpeta.Remove(carpeta);
             await _context.SaveChangesAsync();

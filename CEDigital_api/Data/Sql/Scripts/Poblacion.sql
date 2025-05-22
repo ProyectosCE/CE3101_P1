@@ -20,22 +20,9 @@ INSERT INTO Curso (codigo_curso, nombre, creditos, codigo_carrera) VALUES
 ('QU1106', 'Química básica i', 3, 'QU');
 
 -- Población para Semestre
-INSERT INTO Semestre (año, periodo) VALUES
+INSERT INTO Semestre (anio, periodo) VALUES
 (2025, '1');
 
 -- Población para Grupo
 INSERT INTO Grupo (numero_grupo, codigo_curso, id_semestre) VALUES
 (1, 'CE1101', 1);
-
--- Población para Carpeta 
-INSERT INTO Carpeta (nombre, id_grupo) VALUES
-('Presentaciones', 1),
-('Quices', 1),
-('Exámenes', 1),
-('Proyectos', 1);
-
--- Población para Rubro
-INSERT INTO Rubro (nombre, porcentaje, id_grupo) VALUES
-('Quices', 30.00, 1),
-('Exámenes', 30.00, 1),
-('Proyectos', 40.00, 1);

@@ -2,6 +2,8 @@
 using CEDigital_api.Models.Sql;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Collections.Generic;
 
 namespace CEDigital_api.Controllers.Sql
 {
@@ -51,18 +53,53 @@ namespace CEDigital_api.Controllers.Sql
         {
             if (grupo == null)
                 return BadRequest("Grupo no puede ser null.");
+
             // Verifica que el semestre y el curso existan
             var semestre = await _context.Semestre.FindAsync(grupo.id_semestre);
             if (semestre == null)
                 return NotFound($"Semestre con id {grupo.id_semestre} no encontrado.");
+
             var curso = await _context.Curso.FindAsync(grupo.codigo_curso);
             if (curso == null)
                 return NotFound($"Curso con codigo {grupo.codigo_curso} no encontrado.");
+
+            // Verificar si ya existe el numero de grupo con el mismo semestre y curso
+            var grupoExistente = await _context.Grupo
+                .FirstOrDefaultAsync(g => g.numero_grupo == grupo.numero_grupo && g.id_semestre == grupo.id_semestre && g.codigo_curso == grupo.codigo_curso);
+            if (grupoExistente != null)
+                return BadRequest($"Ya existe un grupo con el número {grupo.numero_grupo} para el semestre {grupo.id_semestre} y curso {grupo.codigo_curso}.");
+
+
+            // Guardar el grupo
             await _context.Grupo.AddAsync(grupo);
+            await _context.SaveChangesAsync(); 
+
+            // Crear carpetas por defecto para este grupo
+            var carpetas = new List<Carpeta>
+            {
+                new Carpeta { nombre = "Presentaciones", id_grupo = grupo.id_grupo },
+                new Carpeta { nombre = "Quices", id_grupo = grupo.id_grupo },
+                new Carpeta { nombre = "Exámenes", id_grupo = grupo.id_grupo },
+                new Carpeta { nombre = "Proyectos", id_grupo = grupo.id_grupo }
+            };
+
+            // Crear rubros por defecto para este grupo
+            var rubros = new List<Rubro>
+            {
+                new Rubro { nombre = "Quices", porcentaje = 30.00, id_grupo = grupo.id_grupo },
+                new Rubro { nombre = "Exámenes", porcentaje = 30.00, id_grupo = grupo.id_grupo },
+                new Rubro { nombre = "Proyectos", porcentaje = 40.00, id_grupo = grupo.id_grupo }
+            };
+
+            await _context.Carpeta.AddRangeAsync(carpetas);
+            await _context.Rubro.AddRangeAsync(rubros);
+
+            // Guardar los cambios
             await _context.SaveChangesAsync();
-            // Devuelve 201 Created con la ubicación del recurso creado
+
             return CreatedAtAction(nameof(GetGrupoById), new { id = grupo.id_grupo }, grupo);
         }
+
 
         // PATCH: api/grupos/{id}
         [HttpPatch("{id}")]

@@ -2,7 +2,7 @@ CREATE TABLE Carpeta (
     id_carpeta        INT IDENTITY(1,1) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
     id_grupo          INT NOT NULL,
-    cedula_profesor   NVARCHAR(20) DEFAULT '0'
+    cedula_profesor   NVARCHAR(20) NULL
 );
 GO
 
