@@ -9,6 +9,7 @@ namespace CEDigital_api.Controllers.Mongo
     public class ProfesorController : ControllerBase
     {
         private readonly ProfesorService _profesorService;
+
         public ProfesorController(ProfesorService profesorService)
         {
             _profesorService = profesorService;
@@ -16,7 +17,7 @@ namespace CEDigital_api.Controllers.Mongo
 
         // Obtener todos los profesores
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<List<Profesor>>> GetAll()
         {
             var profesores = await _profesorService.GetAllAsync();
             return Ok(profesores);
@@ -24,21 +25,24 @@ namespace CEDigital_api.Controllers.Mongo
 
         // Crear un nuevo profesor
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Profesor nuevoProfesor)
+        public async Task<ActionResult> Create([FromBody] Profesor profesor)
         {
-            await _profesorService.CreateAsync(nuevoProfesor);
-            return CreatedAtAction(nameof(GetAll), new { Id = nuevoProfesor.cedula }, nuevoProfesor);
+            await _profesorService.CreateAsync(profesor);
+            return CreatedAtAction(nameof(GetAll), new { cedula = profesor.cedula }, profesor);
+        }
+
+        // Actualizar un profesor
+        [HttpPut("{cedula}")]
+        public async Task<ActionResult> Update(string cedula, [FromBody] Profesor profesor)
+        {
+            await _profesorService.UpdateAsync(cedula, profesor);
+            return NoContent();
         }
 
         // Eliminar un profesor por cédula
         [HttpDelete("{cedula}")]
-        public async Task<IActionResult> Delete(string cedula)
+        public async Task<ActionResult> Delete(string cedula)
         {
-            var profesor = await _profesorService.GetAllAsync();
-            if (profesor == null)
-            {
-                return NotFound();
-            }
             await _profesorService.DeleteAsync(cedula);
             return NoContent();
         }
