@@ -4,6 +4,7 @@ import { FaSearch, FaTimes } from 'react-icons/fa'
 import { v4 as uuidv4 } from 'uuid'
 import type { Student, GroupActivity, Group } from '@/types/groups'
 import { useGroupsStore } from '@/stores/groupsStore'
+import { useRelationshipStore } from '@/stores/relationshipsStore'
 
 interface GroupModalProps {
   show: boolean
@@ -23,6 +24,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
   mode
 }) => {
   const { groupTypes } = useGroupsStore()
+  const relationships = useRelationshipStore()
   
   const [form, setForm] = useState<Group>({
     id: uuidv4(),
@@ -103,6 +105,32 @@ const GroupModal: React.FC<GroupModalProps> = ({
     // Immediately load students for the selected type
     const availableStudentsList = getAvailableStudents(activityId)
     setAvailableStudents(availableStudentsList)
+  }
+
+  const handleSave = () => {
+    // Get current and new member IDs
+    const oldMemberIds = mode.startsWith('edit') ? 
+      relationships.getStudentsInGroup(form.id) : []
+    const newMemberIds = form.members.map(m => m.carnet)
+
+    // Save the group first
+    onSave(form)
+
+    // Update student-group relationships
+    // Remove old relationships
+    oldMemberIds.forEach(studentId => {
+      relationships.removeStudentFromGroup(studentId, form.id)
+    })
+
+    // Add new relationships
+    newMemberIds.forEach(studentId => {
+      relationships.addStudentToGroup(studentId, form.id)
+    })
+
+    // Ensure group-category relationship
+    if (form.activityId) {
+      relationships.linkGroupToCategory(form.id, form.activityId)
+    }
   }
 
   return (
@@ -218,7 +246,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => onSave(form)}
+          onClick={handleSave}
           disabled={!form.name || form.members.length === 0}
         >
           Guardar

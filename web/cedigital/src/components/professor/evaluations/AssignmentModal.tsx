@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Modal } from 'react-bootstrap'
 import { FaFileUpload, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 import { useGroupsStore } from '@/stores/groupsStore'
+import { useRelationshipStore } from '@/stores/relationshipsStore'
 import type { Assignment, Rubric } from '@/types/evaluation'
 import type { Group, GroupActivity } from '@/types/groups'
 import EvaluationGroupsModal from './EvaluationGroupsModal'
@@ -32,6 +33,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   onCreateGroups,
   onEditGroups
 }) => {
+  const relationships = useRelationshipStore()
   const { groupTypes, getGroupsByType } = useGroupsStore()
   const [form, setForm] = useState<Assignment>({
     id: '',
@@ -77,7 +79,20 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Save the assignment first
     onSave(form)
+
+    // Si es trabajo grupal y tiene una categoría asignada
+    if (form.isGroupWork && form.groupTypeId) {
+      // Solo vinculamos la categoría con la evaluación
+      relationships.linkCategoryToAssignment(form.groupTypeId, form.id)
+    }
+  }
+
+  // Get the number of groups in a category using relationships
+  const getGroupCount = (categoryId: string) => {
+    return relationships.getGroupsInCategory(categoryId).length
   }
 
   // Get the current group type name
@@ -275,7 +290,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                           >
                             <option value="">Seleccionar categoría de grupos...</option>
                             {groupTypes.map(type => {
-                              const groupCount = getGroupsByType(type.id).length
+                              const groupCount = getGroupCount(type.id)
                               return (
                                 <option key={type.id} value={type.id}>
                                   {type.name} ({groupCount} grupos)

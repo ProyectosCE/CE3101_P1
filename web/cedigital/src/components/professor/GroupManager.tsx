@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import GroupModal from './groups/GroupModal'
 import GroupTypeModal from './groups/GroupTypeModal'
 import type { Student, GroupActivity, Group } from '@/types/groups'
 import { useGroupsStore } from '@/stores/groupsStore'
 import { useStudentsStore } from '@/stores/studentsStore'
+import { useRelationshipStore } from '@/stores/relationshipsStore'
 
 interface GroupManagerProps {
   initialGroups?: Group[]
@@ -24,14 +25,29 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   singleCategory = false
 }) => {
   const { students } = useStudentsStore()
-  const { groups: allGroups, groupTypes, addGroup, updateGroup, deleteGroup, getGroupsByType, addGroupType, deleteGroupType } = useGroupsStore()
-  const [groups, setGroups] = useState<Group[]>(
-    singleCategory ? initialGroups : allGroups
-  )
-  const [showModal, setShowModal] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const { groups: allGroups, groupTypes, addGroup, updateGroup, deleteGroup, getGroupsByType, addGroupType, deleteGroupType, subscribeToGroupsByCategory } = useGroupsStore()
+  const relationships = useRelationshipStore()
   const [expandedType, setExpandedType] = useState<string | null>(null)
   const [showTypeModal, setShowTypeModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  
+  // Eliminar el estado local de grupos y usar directamente los grupos del store
+  const typeGroups = useMemo(() => {
+    if (singleCategory) {
+      return getGroupsByType(activityId || 'general')
+    }
+    return allGroups
+  }, [singleCategory, activityId, allGroups])
+
+  useEffect(() => {
+    if (singleCategory && activityId) {
+      // Suscribirse a cambios en los grupos de esta categoría
+      return subscribeToGroupsByCategory(activityId, () => {
+        // La actualización será automática a través de allGroups
+      })
+    }
+  }, [singleCategory, activityId])
 
   const handleAdd = () => {
     setEditingGroup(null)
@@ -44,10 +60,10 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   }
 
   const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    const currentGroup = groups.find(g => g.id === excludeGroupId);
+    const currentGroup = typeGroups.find(g => g.id === excludeGroupId);
     const currentMembers = new Set(currentGroup?.members.map(m => m.carnet) || []);
 
-    const assignedStudentsInCategory = groups
+    const assignedStudentsInCategory = typeGroups
       .filter(g => {
         if (!activityId || activityId === 'general') {
           return g.activityId === null && g.id !== excludeGroupId;
@@ -63,37 +79,67 @@ const GroupManager: React.FC<GroupManagerProps> = ({
     );
   };
 
-  const handleSave = (group: Group) => {
+  // Modificar handleSave para usar directamente el store
+  const handleSave = async (group: Group) => {
+    const isNewGroup = !editingGroup
     const updatedGroup = {
       ...group,
       activityId: activityId || (group.activityId === 'general' ? null : group.activityId)
     }
     
-    if (editingGroup) {
-      if (standalone) {
-        updateGroup(updatedGroup)
-      }
-      setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g))
+    // Handle group creation/update
+    if (isNewGroup) {
+      await addGroup(updatedGroup, updatedGroup.activityId || 'general')
     } else {
-      if (standalone) {
-        addGroup(updatedGroup)
-      }
-      setGroups(prev => [...prev, updatedGroup])
+      await updateGroup(updatedGroup)
     }
-    setShowModal(false)
 
-    // If being used as sub-component, notify parent of changes
+    // Update relationships
+    const oldMemberIds = isNewGroup ? [] : 
+      relationships.getStudentsInGroup(updatedGroup.id)
+    const newMemberIds = updatedGroup.members.map(m => m.carnet)
+
+    // Remove old relationships
+    oldMemberIds.forEach((studentId: string) => {
+      relationships.removeStudentFromGroup(studentId, updatedGroup.id)
+    })
+
+    // Add new relationships
+    newMemberIds.forEach((studentId: string) => {
+      relationships.addStudentToGroup(studentId, updatedGroup.id)
+    })
+
+    // Update category relationship
+    if (updatedGroup.activityId) {
+      relationships.linkGroupToCategory(updatedGroup.id, updatedGroup.activityId)
+    }
+
+    setShowModal(false)
+    setEditingGroup(null)
+
     if (!standalone && onSave) {
-      onSave([...groups, updatedGroup])
+      onSave(getGroupsByType(activityId || 'general'))
     }
   }
 
   const handleDelete = (groupId: string) => {
     if (confirm('¿Está seguro de eliminar este grupo?')) {
+      // Remove all student relationships first
+      const studentsInGroup = relationships.getStudentsInGroup(groupId)
+      studentsInGroup.forEach(studentId => {
+        relationships.removeStudentFromGroup(studentId, groupId)
+      })
+
+      // Remove group from category if it belongs to one
+      const categoryId = relationships.getCategoryForGroup(groupId)
+      if (categoryId) {
+        relationships.unlinkGroupFromCategory(groupId, categoryId)
+      }
+
+      // Finally delete the group
       if (standalone) {
         deleteGroup(groupId)
       }
-      setGroups(prev => prev.filter(g => g.id !== groupId))
     }
   }
 
@@ -246,7 +292,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
 
           {/* Single category view shows groups directly */}
           <div className="row g-3">
-            {groups.map(group => (
+            {typeGroups.map(group => (
               <div key={group.id} className="col-md-4">
                 <div className="card h-100">
                   <div className="card-body">

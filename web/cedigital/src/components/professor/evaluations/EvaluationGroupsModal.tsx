@@ -3,6 +3,7 @@ import { Modal } from 'react-bootstrap'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import { useGroupsStore } from '@/stores/groupsStore'
 import { useStudentsStore } from '@/stores/studentsStore'
+import { useRelationshipStore } from '@/stores/relationshipsStore'
 import type { Group, Student } from '@/types/groups'
 import GroupModal from '../groups/GroupModal'
 
@@ -23,22 +24,27 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
   mode = 'edit',
   onComplete
 }) => {
-  const { groups, getGroupsByType, addGroup, updateGroup, deleteGroup } = useGroupsStore()
+  const { groups, getGroupsByType, addGroup, updateGroup, deleteGroup, subscribeToGroupsByCategory } = useGroupsStore()
   const { students } = useStudentsStore()
+  const relationships = useRelationshipStore()
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [typeGroups, setTypeGroups] = useState<Group[]>([])
 
   useEffect(() => {
     if (show) {
-      refreshGroups()
+      // Suscribirse a cambios en los grupos de esta categoría
+      const unsubscribe = subscribeToGroupsByCategory(groupTypeId, (categoryGroups) => {
+        setTypeGroups(categoryGroups)
+      })
+
+      // Cargar grupos iniciales
+      const initialGroups = getGroupsByType(groupTypeId)
+      setTypeGroups(initialGroups)
+
+      return () => unsubscribe()
     }
   }, [show, groupTypeId])
-
-  const refreshGroups = () => {
-    const currentGroups = getGroupsByType(groupTypeId)
-    setTypeGroups(currentGroups)
-  }
 
   const handleAdd = () => {
     setEditingGroup({
@@ -59,25 +65,60 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
     setShowGroupModal(true)
   }
 
+  const refreshGroups = () => {
+    const groupIds = relationships.getGroupsInCategory(groupTypeId)
+    const categoryGroups = groups.filter(g => groupIds.includes(g.id))
+    setTypeGroups(categoryGroups)
+  }
+
   const handleDelete = (groupId: string) => {
     if (confirm('¿Está seguro de eliminar este grupo?')) {
+      // First remove all student relationships
+      const studentsInGroup = relationships.getStudentsInGroup(groupId)
+      studentsInGroup.forEach(studentId => {
+        relationships.removeStudentFromGroup(studentId, groupId)
+      })
+
+      // Remove group from category
+      relationships.unlinkGroupFromCategory(groupId, groupTypeId)
+      
+      // Finally delete the group
       deleteGroup(groupId)
-      // Update local state
-      setTypeGroups(prev => prev.filter(g => g.id !== groupId))
+      refreshGroups()
     }
   }
 
   const handleSave = (group: Group) => {
+    const isNewGroup = !editingGroup?.id
     const updatedGroup = {
       ...group,
       activityId: groupTypeId
     }
     
-    if (editingGroup?.id) {
-      updateGroup(updatedGroup)
+    // Handle group creation/update
+    if (isNewGroup) {
+      addGroup(updatedGroup, groupTypeId)
     } else {
-      addGroup(updatedGroup)
+      updateGroup(updatedGroup)
     }
+
+    // Update student relationships
+    const oldMemberIds = isNewGroup ? [] : 
+      relationships.getStudentsInGroup(updatedGroup.id)
+    const newMemberIds = updatedGroup.members.map(m => m.carnet)
+
+    // Remove old relationships
+    oldMemberIds.forEach(studentId => {
+      relationships.removeStudentFromGroup(studentId, updatedGroup.id)
+    })
+
+    // Add new relationships
+    newMemberIds.forEach(studentId => {
+      relationships.addStudentToGroup(studentId, updatedGroup.id)
+    })
+
+    // Ensure group-category relationship
+    relationships.linkGroupToCategory(updatedGroup.id, groupTypeId)
     
     refreshGroups()
     setShowGroupModal(false)
@@ -85,24 +126,22 @@ const EvaluationGroupsModal: React.FC<EvaluationGroupsModalProps> = ({
   }
 
   const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // Get only students assigned to groups in this specific category
-    const studentsInThisCategory = groups
-      .filter(g => g.activityId === groupTypeId && g.id !== excludeGroupId)
-      .flatMap(g => g.members.map(m => m.carnet))
-
-    // If we're editing a group, include its current members in available list
-    const currentGroupMembers = excludeGroupId 
-      ? groups.find(g => g.id === excludeGroupId)?.members.map(m => m.carnet) || []
-      : []
-
-    const assignedSet = new Set(studentsInThisCategory)
-
-    // Return students that:
-    // 1. Are not in other groups of this category
-    // 2. Or are in the current group being edited
-    return students.filter(student => 
-      !assignedSet.has(student.carnet) || currentGroupMembers.includes(student.carnet)
+    // Get students already in any group of this category
+    const groupIds = relationships.getGroupsInCategory(groupTypeId)
+    const takenStudentIds = new Set(
+      groupIds
+        .filter(gId => gId !== excludeGroupId)
+        .flatMap(gId => relationships.getStudentsInGroup(gId))
     )
+
+    // If editing, include current group members as available
+    if (excludeGroupId) {
+      const currentMembers = relationships.getStudentsInGroup(excludeGroupId)
+      currentMembers.forEach(studentId => takenStudentIds.delete(studentId))
+    }
+
+    // Return all students that aren't in other groups
+    return students.filter(student => !takenStudentIds.has(student.carnet))
   }
 
   const handleClose = () => {
