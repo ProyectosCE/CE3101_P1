@@ -27,6 +27,7 @@ const StudentManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
     email: '',
     telefono: '',
   })
+  const [loading, setLoading] = useState(true)
 
   // Expresiones regulares de validación
   const carnetRegex  = /^20\d{8}$/
@@ -112,22 +113,27 @@ const StudentManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
   }
 
   React.useEffect(() => {
-    // Cargar estudiantes cada vez que reloadKey cambie
+    setLoading(true)
     getEstudiantes()
       .then((data) => {
-        // Ajusta el mapeo según la estructura real de la respuesta
-        setStudents(
-          (data as any[]).map((s, idx) => ({
-            id: s.id?.toString() ?? (idx + 1).toString(),
-            carnet: s.carnet,
-            cedula: s.cedula,
-            nombre: s.nombre,
-            email: s.correo,
-            telefono: s.telefono,
-          }))
-        )
+        const arr = Array.isArray(data) ? data : data.students ?? []
+        if (!Array.isArray(arr) || arr.length === 0) {
+          setStudents([])
+        } else {
+          setStudents(
+            arr.map((s: any, idx: number) => ({
+              id: s.id?.toString() ?? (idx + 1).toString(),
+              carnet: s.carnet,
+              cedula: s.cedula,
+              nombre: s.nombre,
+              email: s.correo,
+              telefono: s.telefono,
+            }))
+          )
+        }
       })
       .catch(() => setStudents([]))
+      .finally(() => setLoading(false))
   }, [reloadKey])
 
   return (
@@ -217,7 +223,13 @@ const StudentManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
           </tr>
         </thead>
         <tbody>
-          {students.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan={5} className="text-center text-muted">
+                Cargando...
+              </td>
+            </tr>
+          ) : students.length > 0 ? (
             students.map(s => (
               <tr key={s.id}>
                 <td>{s.carnet}</td>

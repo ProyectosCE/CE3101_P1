@@ -24,6 +24,7 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
     email: '',
     telefono: '',
   })
+  const [loading, setLoading] = useState(true)
 
   const cedulaRegex = /^\d{9}$/
   const telefonoRegex = /^\d{4}-\d{4}$/
@@ -95,20 +96,28 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
   }
 
   React.useEffect(() => {
+    setLoading(true)
     // Cargar profesores cada vez que reloadKey cambie
     getProfesores()
       .then((data) => {
-        setProfs(
-          (data as any[]).map((p, idx) => ({
-            id: p.id?.toString() ?? (idx + 1).toString(),
-            cedula: p.cedula,
-            nombre: p.nombre,
-            email: p.correo,
-            telefono: p.telefono,
-          }))
-        )
+        // Soporta respuesta { profesores: [...] } o array directo
+        const arr = Array.isArray(data) ? data : data.profesores ?? []
+        if (!Array.isArray(arr) || arr.length === 0) {
+          setProfs([])
+        } else {
+          setProfs(
+            arr.map((p: any, idx: number) => ({
+              id: p.id?.toString() ?? (idx + 1).toString(),
+              cedula: p.cedula,
+              nombre: p.nombre,
+              email: p.correo,
+              telefono: p.telefono,
+            }))
+          )
+        }
       })
       .catch(() => setProfs([]))
+      .finally(() => setLoading(false))
   }, [reloadKey])
 
   return (
@@ -188,7 +197,13 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
           </tr>
         </thead>
         <tbody>
-          {profs.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan={4} className="text-center text-muted">
+                Cargando...
+              </td>
+            </tr>
+          ) : profs.length > 0 ? (
             profs.map(p => (
               <tr key={p.id}>
                 <td>{p.cedula}</td>

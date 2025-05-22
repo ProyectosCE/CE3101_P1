@@ -1,5 +1,7 @@
 // src/components/admin/CourseManager.tsx
 import React, { useState } from 'react'
+import ExcelUploader from './ExcelUploader'
+import { uploadCursosExcel, createCurso, updateCurso, toggleCurso, getCursos } from '@/Functions/coursesApi'
 
 interface CourseEntry {
   code: string
@@ -40,6 +42,30 @@ const CourseManager: React.FC = () => {
   const [createdCourses, setCreatedCourses] = useState<CourseEntry[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingCourse, setEditingCourse] = useState<CourseEntry | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Cargar cursos desde el backend
+  React.useEffect(() => {
+    setLoading(true)
+    getCursos()
+      .then((data: any) => {
+        // Soporta respuesta { courses: [...] } o array directo
+        const arr = Array.isArray(data) ? data : data.courses ?? []
+        setCreatedCourses(
+          arr.map((c: any, idx: number) => ({
+            id: c.id?.toString() ?? (idx + 1).toString(),
+            code: c.codigo,
+            name: c.nombre,
+            credits: c.creditos ?? 0,
+            hours: c.horasLectivas ?? 0,
+            disabled: c.deshabilitado || c.disabled,
+          }))
+        )
+      })
+      .catch(() => setCreatedCourses([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   const updateNewCourse = (field: keyof CourseEntry, value: string | number) => {
     setNewCourse({ ...newCourse, [field]: value })
@@ -113,9 +139,43 @@ const CourseManager: React.FC = () => {
     course.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Subida de Excel
+  const handleFileSelect = (file: File) => setSelectedFile(file)
+
+  const confirmImport = async () => {
+    if (!selectedFile) {
+      alert('No hay archivo seleccionado.')
+      return
+    }
+    try {
+      const res = await uploadCursosExcel(selectedFile)
+      alert(
+        `Importación completada.\nImportados: ${res.importedCount ?? '-'}\nErrores: ${res.errors?.length || 0}`
+      )
+      setSelectedFile(null)
+      // Opcional: recargar cursos desde backend aquí
+    } catch (err) {
+      alert('Error al subir el archivo.')
+    }
+  }
+
   return (
     <div>
       <h2 className="mb-4">Gestión de Cursos</h2>
+
+      {/* Importar desde Excel */}
+      <div className="mb-4">
+        <h5>Importar desde Excel</h5>
+        <ExcelUploader onFileSelect={handleFileSelect} />
+        {selectedFile && (
+          <div className="mt-2">
+            <span>Archivo listo: {selectedFile.name}</span>{' '}
+            <button className="btn btn-success btn-sm ms-2" onClick={confirmImport}>
+              Confirmar importación
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="mb-4">
         <input
@@ -193,56 +253,57 @@ const CourseManager: React.FC = () => {
         </div>
       )}
 
-      {/* Display courses grouped by school */}
-      {Object.entries(coursesBySchool).map(([schoolCode, courses]) => (
-        <div key={schoolCode} className="mb-4">
-          <h3 className="border-bottom pb-2">Escuela: {schoolCode}</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Créditos</th>
-                <th>Horas</th>
-                <th>Acciones</th>
+      {/* Tabla de cursos */}
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Créditos</th>
+            <th>Horas</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={5} className="text-center text-muted">
+                Cargando...
+              </td>
+            </tr>
+          ) : createdCourses.length > 0 ? (
+            createdCourses.map((course, i) => (
+              <tr key={i} className={course.disabled ? 'opacity-50' : ''}>
+                <td>{course.code}</td>
+                <td>{course.name}</td>
+                <td>{course.credits}</td>
+                <td>{course.hours}</td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-primary me-1"
+                    onClick={() => handleEdit(i)}
+                    disabled={course.disabled}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className={`btn btn-sm ${course.disabled ? 'btn-success' : 'btn-danger'}`}
+                    onClick={() => toggleDisabled(i)}
+                  >
+                    {course.disabled ? 'Habilitar' : 'Deshabilitar'}
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {courses.map((course, i) => (
-                <tr key={i} className={course.disabled ? 'opacity-50' : ''}>
-                  <td>{course.code}</td>
-                  <td>
-                    {course.name}
-                    {course.disabled && (
-                      <span className="text-danger border border-danger rounded px-1 ms-2 small" 
-                            style={{ fontSize: '0.7em' }}>
-                        Deshabilitado
-                      </span>
-                    )}
-                  </td>
-                  <td>{course.credits}</td>
-                  <td>{course.hours}</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-primary me-1"
-                      onClick={() => handleEdit(i)}
-                      disabled={course.disabled}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className={`btn btn-sm ${course.disabled ? 'btn-success' : 'btn-danger'}`}
-                      onClick={() => toggleDisabled(i)}
-                    >
-                      {course.disabled ? 'Habilitar' : 'Deshabilitar'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
+            ))
+          ) : (
+            <tr>
+              <td colSpan={5} className="text-center text-muted">
+                Sin cursos
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
 
       {/* Edit modal */}
       {editingIndex !== null && editingCourse && (

@@ -48,12 +48,15 @@ const SchoolManager: React.FC = () => {
 
   // Cargar escuelas desde el backend
   React.useEffect(() => {
-    getEscuelas().then((data: any[]) => {
+    getEscuelas().then((data: any) => {
+      // Soporta respuesta { schools: [...] } o array directo
+      const arr = Array.isArray(data) ? data : data.schools ?? []
       setCreatedSchools(
-        data.map((s) => ({
+        arr.map((s: any) => ({
           id: s.id?.toString(),
           code: s.codigo,
           name: s.nombre,
+          // Solo se usan code y name en el frontend
           disabled: s.deshabilitada || s.disabled,
         }))
       )

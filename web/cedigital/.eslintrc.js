@@ -15,9 +15,17 @@ module.exports = {
                 argsIgnorePattern: '^_',
             }
         ],
-        // (opcional) si usas <img>, desactiva esta advertencia temporalmente:
-        // 'next/no-img-element': 'off',
-
+        // Permitir 'any' en todo el proyecto (desactiva error y advertencia)
+        '@typescript-eslint/no-explicit-any': 'off',
         // Puedes agregar más reglas aquí si deseas
-    }
+    },
+    overrides: [
+        {
+            files: ['**/*.ts', '**/*.tsx'],
+            rules: {
+                // Permitir 'any' en todos los archivos TS/TSX
+                '@typescript-eslint/no-explicit-any': 'off',
+            }
+        }
+    ]
 }

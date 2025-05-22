@@ -1,5 +1,6 @@
 // src/components/admin/SemesterInitializer.tsx
 import React, { useState } from 'react'
+import { getSemestres } from '@/Functions/semestresApi'
 
 interface Semester {
   id: string
@@ -12,6 +13,20 @@ const SemesterInitializer: React.FC = () => {
   const [year, setYear] = useState<number | ''>('')
   const [period, setPeriod] = useState<'1' | '2' | 'V'>('1')
   const [semesters, setSemesters] = useState<Semester[]>([])
+
+  React.useEffect(() => {
+    getSemestres().then((data: any) => {
+      const arr = Array.isArray(data) ? data : data.semestres ?? []
+      setSemesters(
+        arr.map((s: any) => ({
+          id: s.id,
+          year: Number(s.anno),
+          period: s.periodo,
+          active: s.estado === 'Activo'
+        }))
+      )
+    }).catch(() => setSemesters([]))
+  }, [])
 
   const createSemester = () => {
     if (!year) {
