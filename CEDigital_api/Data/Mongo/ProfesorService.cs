@@ -92,5 +92,12 @@ namespace CEDigital_api.Data.Mongo
         {
             return await _profesores.Find(p => p.cedula == cedula).FirstOrDefaultAsync();
         }
+
+        // Verificar si cedula existe
+        public async Task<bool> CedulaExistsAsync(string cedula)
+        {
+            var profesor = await GetByCedulaAsync(cedula);
+            return profesor != null;
+        }
     }
 }

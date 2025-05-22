@@ -9,10 +9,12 @@ namespace CEDigital_api.Controllers.Mongo
     public class ProfesorController : ControllerBase
     {
         private readonly ProfesorService _profesorService;
+        private readonly SqlProfesorService _sqlProfesorService;
 
-        public ProfesorController(ProfesorService profesorService)
+        public ProfesorController(ProfesorService profesorService, SqlProfesorService sqlProfesorService)
         {
             _profesorService = profesorService;
+            _sqlProfesorService = sqlProfesorService;
         }
 
         // GET: api/profesores
@@ -29,8 +31,21 @@ namespace CEDigital_api.Controllers.Mongo
         [HttpPost]
         public async Task<ActionResult> Create([FromBody] Profesor profesor)
         {
+            if (await _profesorService.CedulaExistsAsync(profesor.cedula))
+                return BadRequest("Ya existe un profesor con ese cedula.");
+
             await _profesorService.CreateAsync(profesor);
-            return CreatedAtAction(nameof(GetAll), new { cedula = profesor.cedula }, profesor);
+
+            try
+            {
+                await _sqlProfesorService.AddProfesorAsync(profesor.cedula);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al guardar en SQL: {ex.Message}");
+            }
+
+            return CreatedAtAction(nameof(GetAll), new { carnet = profesor.cedula }, profesor);
         }
 
         // PATCH: api/profesores/{cedula}

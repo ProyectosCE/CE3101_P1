@@ -20,6 +20,8 @@ builder.Services.AddSingleton<ProfesorService>();
 builder.Services.AddSingleton<EstudianteService>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SqlService>();
+builder.Services.AddScoped<SqlEstudianteService>();
+builder.Services.AddScoped<SqlProfesorService>();
 
 
 // SQL Server

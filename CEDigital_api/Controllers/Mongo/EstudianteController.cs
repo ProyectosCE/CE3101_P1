@@ -9,10 +9,12 @@ namespace CEDigital_api.Controllers.Mongo
     public class EstudianteController : ControllerBase
     {
         private readonly EstudianteService _estudianteService;
+        private readonly SqlEstudianteService _sqlEstudianteService;
 
-        public EstudianteController(EstudianteService estudianteService)
+        public EstudianteController(EstudianteService estudianteService, SqlEstudianteService sqlEstudianteService)
         {
             _estudianteService = estudianteService;
+            _sqlEstudianteService = sqlEstudianteService;
         }
 
         // Obtener todos los estudiantes
@@ -32,8 +34,19 @@ namespace CEDigital_api.Controllers.Mongo
                 return BadRequest("Ya existe un estudiante con ese carnet.");
 
             await _estudianteService.CreateAsync(estudiante);
+
+            try
+            {
+                await _sqlEstudianteService.AddEstudianteAsync(estudiante.carnet);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al guardar en SQL: {ex.Message}");
+            }
+
             return CreatedAtAction(nameof(GetAll), new { carnet = estudiante.carnet }, estudiante);
         }
+
 
         // PATCH: api/estudiantes/{carnet}
         // Actualizar un estudiante por carnet
