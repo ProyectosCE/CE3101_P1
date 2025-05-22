@@ -22,6 +22,7 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SqlService>();
 builder.Services.AddScoped<SqlEstudianteService>();
 builder.Services.AddScoped<SqlProfesorService>();
+builder.Services.AddScoped<MongoSeeder>();
 
 
 // SQL Server
@@ -36,6 +37,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+//using (var scope = app.Services.CreateScope())
+//{
+//    var seeder = scope.ServiceProvider.GetRequiredService<MongoSeeder>();
+//    await seeder.SeedAsync();
+//}
 
 app.UseHttpsRedirection();
 
