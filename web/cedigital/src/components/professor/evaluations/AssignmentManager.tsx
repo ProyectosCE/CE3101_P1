@@ -1,40 +1,56 @@
 import React, { useState, useEffect } from 'react'
-import { Modal } from 'react-bootstrap'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import AssignmentModal from './AssignmentModal'
-import EvaluationGroupsModal from './EvaluationGroupsModal'
-import { useGroupsStore } from '@/stores/groupsStore'
 import { rubrosApi, evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
-import type { Group, GroupActivity } from '@/types/groups'
-import type { Assignment, Rubric } from '@/types/evaluation'
+import type { Assignment, Rubric, EvaluacionGrupo } from '@/types/evaluation'
+
+interface Rubro {
+  id: string;
+  nombre: string;
+  porcentaje: number;
+}
+
+interface Evaluacion {
+  id: string;
+  nombreRubro: string;
+  descripcion: string;
+  idRubro: string;
+  porcentaje: number;
+  fechaEntrega: string;
+  horaEntrega: string;
+  trabajoGrupal: boolean;
+  idDocumentoInstrucciones: string;
+}
 
 const AssignmentManager: React.FC = () => {
-  const { groups, groupTypes, addGroupType, updateGroups } = useGroupsStore()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [rubrics, setRubrics] = useState<Rubric[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
-  const [showGroupManager, setShowGroupManager] = useState(false)
-  const [groupManagerTitle, setGroupManagerTitle] = useState('')
-  const [selectedGroupType, setSelectedGroupType] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load data
   useEffect(() => {
     Promise.all([
       rubrosApi.getRubros(),
-      evaluacionesApi.getEvaluaciones()
-    ]).then(([rubricsRes, assignmentsRes]) => {
+      evaluacionesApi.getEvaluaciones(),
+      evaluacionesApi.getEvaluacionesXGrupo()
+    ]).then(([rubricsRes, assignmentsRes, relationshipsRes]) => {
       // Convert rubrics
-      const convertedRubrics = rubricsRes.data.rubros.map(r => ({
+      const convertedRubrics = rubricsRes.data.rubros.map((r: Rubro) => ({
         id: r.id,
         name: r.nombre,
         weight: r.porcentaje
       }))
       setRubrics(convertedRubrics)
 
-      // Convert assignments
-      const convertedAssignments = assignmentsRes.data.evaluaciones.map(a => ({
+      // Get relationships map
+      const relationshipsMap = new Map(
+        relationshipsRes.data.evaluacionesXgrupo.map((r: EvaluacionGrupo) => [r.idEvaluacion, r.idCategoria])
+      )
+
+      // Convert assignments with relationships and ensure type safety
+      const convertedAssignments: Assignment[] = assignmentsRes.data.evaluaciones.map((a: Evaluacion) => ({
         id: a.id,
         title: a.nombreRubro,
         description: a.descripcion,
@@ -43,7 +59,10 @@ const AssignmentManager: React.FC = () => {
         dueDate: a.fechaEntrega,
         dueTime: a.horaEntrega,
         isGroupWork: a.trabajoGrupal,
-        instructionsFile: null
+        instructionsFile: null,
+        linkedCategoryId: relationshipsMap.get(a.id),
+        groupOption: relationshipsMap.has(a.id) ? 'existing' as const : undefined,
+        groupTypeId: relationshipsMap.get(a.id)
       }))
       setAssignments(convertedAssignments)
     }).finally(() => setLoading(false))
@@ -103,54 +122,6 @@ const AssignmentManager: React.FC = () => {
     } catch (error) {
       console.error('Error deleting assignment:', error)
       alert('Error al eliminar la evaluación')
-    }
-  }
-
-  const handleCreateGroups = (activityName: string) => {
-    // Check if group type already exists
-    const existingGroupType = groupTypes.find(
-      type => type.name.toLowerCase() === activityName.toLowerCase()
-    )
-
-    if (existingGroupType) {
-      alert('Ya existe una categoría de grupos con este nombre.')
-      return {
-        exists: true,
-        groupType: existingGroupType
-      }
-    }
-
-    const newGroupType: GroupActivity = {
-      id: activityName.toLowerCase().replace(/\s+/g, '-'),
-      name: activityName
-    }
-    addGroupType(newGroupType)
-    setGroupManagerTitle(activityName)
-    setSelectedGroupType(newGroupType.id)
-    setShowGroupManager(true)
-    setShowModal(false)
-    return { exists: false }
-  }
-
-  const handleGroupManagerClose = () => {
-    setShowGroupManager(false)
-    if (showModal) {
-      setShowModal(true)
-    }
-  }
-
-  const handleGroupManagerSave = (newGroups: Group[]) => {
-    const currentGroups = groups.filter(g => g.activityId !== selectedGroupType)
-    updateGroups([...currentGroups, ...newGroups])
-  }
-
-  const handleEditGroups = (groupTypeId: string) => {
-    const groupType = groupTypes.find(t => t.id === groupTypeId)
-    if (groupType) {
-      setGroupManagerTitle(groupType.name)
-      setSelectedGroupType(groupTypeId)
-      setShowGroupManager(true)
-      setShowModal(false)
     }
   }
 
@@ -219,21 +190,7 @@ const AssignmentManager: React.FC = () => {
         onSave={handleSave}
         assignment={editingAssignment}
         rubrics={rubrics}
-        groups={groups}
-        groupTypes={groupTypes}
-        onCreateGroups={handleCreateGroups}
-        onEditGroups={handleEditGroups}
       />
-
-      {showGroupManager && (
-        <EvaluationGroupsModal
-          show={true}
-          onHide={handleGroupManagerClose}
-          groupTypeId={selectedGroupType!}
-          groupTypeName={groupManagerTitle}
-          mode="create"
-        />
-      )}
     </div>
   )
 }

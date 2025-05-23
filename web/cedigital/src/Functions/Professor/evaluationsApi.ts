@@ -37,6 +37,15 @@ interface EvaluacionCategoria {
     idEvaluacion: string;
 }
 
+export interface EvaluacionGrupo {
+  idEvaluacion: string;
+  idCategoria: string;
+}
+
+interface EvaluacionGruposResponse {
+    evaluacionesXgrupo: EvaluacionGrupo[];
+}
+
 // API Functions for Rubros
 export const rubrosApi = {
     getRubros: () => 
@@ -72,7 +81,26 @@ export const evaluacionesApi = {
         return axios.post(`${API_BASE_URL}/profesor/evaluaciones/${id}/instrucciones`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-    }
+    },
+
+    getEvaluacionesXGrupo: () => {
+        return axios.get<{ evaluacionesXgrupo: EvaluacionGrupo[] }>(
+          `${API_BASE_URL}/profesor/evaluacionesXgrupo`
+        )
+      },
+    
+      createEvaluacionXGrupo: (data: EvaluacionGrupo) => {
+        return axios.post(
+          `${API_BASE_URL}/profesor/evaluacionesXgrupo`,
+          data
+        )
+      },
+    
+      deleteEvaluacionXGrupo: (evaluacionId: string) => {
+        return axios.delete(
+          `${API_BASE_URL}/profesor/evaluacionesXgrupo/${evaluacionId}`
+        )
+      }
 };
 
 // API Functions for Categorías

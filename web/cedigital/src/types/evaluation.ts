@@ -16,15 +16,15 @@ export interface Assignment {
   dueTime: string
   isGroupWork: boolean
   instructionsFile: File | null
-  groupTypeId?: string
+  linkedCategoryId?: string
   groupOption?: 'existing' | 'new'
+  groupTypeId?: string
 }
 
 export interface GroupMember {
   carnet: string
   name: string
 }
-
 
 export interface Submission {
   id: string
@@ -48,4 +48,27 @@ export interface Activity {
 
 export interface RubricWithActivities extends Rubric {
   activities: Activity[]
+}
+
+export interface EvaluacionGrupo {
+  idEvaluacion: string
+  idCategoria: string
+}
+
+export interface Rubro {
+  id: string
+  nombre: string
+  porcentaje: number
+}
+
+export interface Evaluacion {
+  id: string
+  nombreRubro: string
+  descripcion: string
+  idRubro: string
+  porcentaje: number
+  fechaEntrega: string
+  horaEntrega: string
+  trabajoGrupal: boolean
+  idDocumentoInstrucciones: string
 }
