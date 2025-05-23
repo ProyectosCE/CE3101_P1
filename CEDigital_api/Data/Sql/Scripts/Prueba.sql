@@ -70,13 +70,25 @@ INSERT INTO Noticia (titulo, mensaje, id_grupo, cedula_profesor) VALUES
 -- 1. Obtener id del grupo
 DECLARE @id_grupo INT = (SELECT id_grupo FROM Grupo WHERE codigo_curso = 'CE1101' AND numero_grupo = 1 AND id_semestre = 1);
 
+
+INSERT INTO Rubro (nombre, porcentaje, id_grupo) VALUES
+('Quices', 30, @id_grupo),
+('Exámenes', 30, @id_grupo),
+('Proyectos', 40, @id_grupo);
+
+INSERT INTO Carpeta (nombre, id_grupo) VALUES
+('Presentaciones', @id_grupo),
+('Quices', @id_grupo),
+('Exámenes', @id_grupo),
+('Proyectos', @id_grupo);
+
 -- 2. Obtener ids de los rubros automáticos
 DECLARE @id_rubro_quices INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Quices' AND id_grupo = @id_grupo);
 DECLARE @id_rubro_examenes INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Exámenes' AND id_grupo = @id_grupo);
 DECLARE @id_rubro_proyectos INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Proyectos' AND id_grupo = @id_grupo);
 
-INSERT INTO CategoriaGrupo (nombre_categoria) VALUES
-('Teórica');
+INSERT INTO CategoriaGrupo (nombre_categoria, id_grupo) VALUES
+('Teórica', @id_grupo);
 
 -- 3. Insertar evaluaciones para esos rubros
 INSERT INTO Evaluacion (nombre, peso, fecha_entrega, tipo, archivo_especificacion, id_rubro, id_categoria) VALUES

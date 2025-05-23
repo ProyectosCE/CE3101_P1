@@ -14,5 +14,9 @@ namespace CEDigital_api.Models.Sql
 
         [JsonIgnore]
         public List<Evaluacion> evaluaciones { get; set; } = new();
+
+        // Fks
+        public int id_grupo { get; set; }
+        public Grupo? grupo { get; set; }
     }
 }

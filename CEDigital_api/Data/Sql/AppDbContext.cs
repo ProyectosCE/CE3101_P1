@@ -132,6 +132,12 @@ namespace CEDigital_api.Data.Sql
                 .WithMany(cg => cg.evaluaciones)
                 .HasForeignKey(e => e.id_categoria);
 
+            // CategoriaGrupo(1) - Grupo(N)
+            modelBuilder.Entity<CategoriaGrupo>()
+                .HasOne(cg => cg.grupo)
+                .WithMany(g => g.categorias)
+                .HasForeignKey(cg => cg.id_grupo);
+
 
             //========== Relaciones N a N ===================
 

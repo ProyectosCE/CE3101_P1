@@ -130,7 +130,8 @@ GO
 
 CREATE TABLE CategoriaGrupo (
     id_categoria      INT IDENTITY(1,1) PRIMARY KEY,
-    nombre_categoria  NVARCHAR(100) NOT NULL
+    nombre_categoria  NVARCHAR(100) NOT NULL,
+    id_grupo 	      INT NOT NULL
 );
 GO
 
@@ -236,5 +237,9 @@ ALTER TABLE MiniGrupo
 ALTER TABLE Evaluacion
     ADD CONSTRAINT FK_Evaluacion_CategoriaGrupo FOREIGN KEY(id_categoria)
         REFERENCES CategoriaGrupo(id_categoria);
+
+ALTER TABLE CategoriaGrupo
+    ADD CONSTRAINT FK_CategoriaGrupo_Grupo FOREIGN KEY(id_grupo)
+        REFERENCES Grupo(id_grupo);
 
 GO

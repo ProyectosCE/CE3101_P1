@@ -26,3 +26,16 @@ INSERT INTO Semestre (anio, periodo) VALUES
 -- Población para Grupo
 INSERT INTO Grupo (numero_grupo, codigo_curso, id_semestre) VALUES
 (1, 'CE1101', 1);
+
+DECLARE @id_grupo INT = (SELECT id_grupo FROM Grupo WHERE codigo_curso = 'CE1101' AND numero_grupo = 1 AND id_semestre = 1);
+
+INSERT INTO Rubro (nombre, porcentaje, id_grupo) VALUES
+('Quices', 30, @id_grupo),
+('Exámenes', 30, @id_grupo),
+('Proyectos', 40, @id_grupo);
+
+INSERT INTO Carpeta (nombre, id_grupo) VALUES
+('Presentaciones', @id_grupo),
+('Quices', @id_grupo),
+('Exámenes', @id_grupo),
+('Proyectos', @id_grupo);

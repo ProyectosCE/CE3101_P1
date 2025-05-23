@@ -25,6 +25,9 @@ namespace CEDigital_api.Models.Sql
         [JsonIgnore]
         public ICollection<EstudiantexGrupo> estudiantes { get; set; } = new List<EstudiantexGrupo>();
 
+        [JsonIgnore]
+        public ICollection<CategoriaGrupo> categorias { get; set; } = new List<CategoriaGrupo>();
+
         // Fks
         public int id_semestre { get; set; }
         public Semestre? semestre { get; set; }
