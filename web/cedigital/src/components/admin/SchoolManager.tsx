@@ -1,7 +1,10 @@
 // src/components/admin/SchoolManager.tsx
 import React, { useState } from 'react'
+import ExcelUploader from './ExcelUploader'
+import { uploadEscuelasExcel, createEscuela, updateEscuela, toggleEscuela, getEscuelas } from '@/Functions/schoolsApi'
 
 interface SchoolEntry {
+  id?: string
   code: string
   name: string
   disabled?: boolean
@@ -32,6 +35,7 @@ const SchoolManager: React.FC = () => {
   const [createdSchools, setCreatedSchools] = useState<SchoolEntry[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingSchool, setEditingSchool] = useState<SchoolEntry | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const updateNewSchool = (field: keyof SchoolEntry, value: string) => {
     setNewSchool({ ...newSchool, [field]: value })
@@ -42,10 +46,44 @@ const SchoolManager: React.FC = () => {
     setShowForm(false)
   }
 
-  const createSchool = () => {
+  // Cargar escuelas desde el backend
+  React.useEffect(() => {
+    getEscuelas().then((data: any) => {
+      // Soporta respuesta { schools: [...] } o array directo
+      const arr = Array.isArray(data) ? data : data.schools ?? []
+      setCreatedSchools(
+        arr.map((s: any) => ({
+          id: s.id?.toString(),
+          code: s.codigo,
+          name: s.nombre,
+          // Solo se usan code y name en el frontend
+          disabled: s.deshabilitada || s.disabled,
+        }))
+      )
+    }).catch(() => setCreatedSchools([]))
+  }, [])
+
+  // Crear escuela usando API
+  const createSchool = async () => {
     if (!allFieldsFilled(newSchool)) return
-    setCreatedSchools([...createdSchools, newSchool])
-    resetForm()
+    try {
+      const res = await createEscuela({
+        codigo: newSchool.code,
+        nombre: newSchool.name,
+      })
+      setCreatedSchools(prev => [
+        ...prev,
+        {
+          id: res.escuela?.id?.toString(),
+          code: res.escuela?.codigo,
+          name: res.escuela?.nombre,
+          disabled: res.escuela?.deshabilitada,
+        }
+      ])
+      resetForm()
+    } catch {
+      alert('Error al crear escuela')
+    }
   }
 
   const isValidSchoolCode = (code: string) => /^[A-Z]{2}$/.test(code)
@@ -63,13 +101,29 @@ const SchoolManager: React.FC = () => {
     setEditingSchool({ ...editingSchool, [field]: value })
   }
 
-  const saveEdit = () => {
+  // Guardar edición usando API
+  const saveEdit = async () => {
     if (editingIndex === null || !editingSchool || !allFieldsFilled(editingSchool)) return
-    const copy = [...createdSchools]
-    copy[editingIndex] = editingSchool
-    setCreatedSchools(copy)
-    setEditingIndex(null)
-    setEditingSchool(null)
+    try {
+      const res = await updateEscuela(
+        createdSchools[editingIndex].id!,
+        {
+          codigo: editingSchool.code,
+          nombre: editingSchool.name,
+        }
+      )
+      const copy = [...createdSchools]
+      copy[editingIndex] = {
+        ...copy[editingIndex],
+        code: res.codigo,
+        name: res.nombre,
+      }
+      setCreatedSchools(copy)
+      setEditingIndex(null)
+      setEditingSchool(null)
+    } catch {
+      alert('Error al editar escuela')
+    }
   }
 
   const cancelEdit = () => {
@@ -77,16 +131,48 @@ const SchoolManager: React.FC = () => {
     setEditingSchool(null)
   }
 
-  const toggleDisabled = (idx: number) => {
-    const copy = [...createdSchools]
-    copy[idx] = { ...copy[idx], disabled: !copy[idx].disabled }
-    setCreatedSchools(copy)
+  // Habilitar/deshabilitar usando API
+  const toggleDisabled = async (idx: number) => {
+    const school = createdSchools[idx]
+    if (!school.id) return
+    try {
+      const res = await toggleEscuela(school.id)
+      const copy = [...createdSchools]
+      copy[idx] = {
+        ...copy[idx],
+        disabled: res.deshabilitada ?? !copy[idx].disabled,
+      }
+      setCreatedSchools(copy)
+    } catch {
+      alert('Error al cambiar estado de la escuela')
+    }
+  }
+
+  // Subida de Excel
+  const handleFileSelect = (file: File) => setSelectedFile(file)
+
+  const confirmImport = async () => {
+    if (!selectedFile) {
+      alert('No hay archivo seleccionado.')
+      return
+    }
+    try {
+      const res = await uploadEscuelasExcel(selectedFile)
+      alert(
+        `Importación completada.\nImportados: ${res.importedCount}\nErrores: ${res.errors?.length || 0}`
+      )
+      setSelectedFile(null)
+      // Opcional: recargar escuelas desde backend aquí
+    } catch (err) {
+      alert('Error al subir el archivo.')
+    }
   }
 
   return (
     <div>
       <h2 className="mb-4">Gestión de Escuelas</h2>
-
+      
+      {/* Crear escuela form */}
       <div className="mb-4">
         <button 
           className={`btn ${showForm ? 'btn-danger' : 'btn-secondary'}`} 
@@ -129,6 +215,20 @@ const SchoolManager: React.FC = () => {
         </div>
       )}
 
+      {/* Temporarily disabled Excel import
+      <div className="mb-4">
+        <h5>Importar desde Excel</h5>
+        <ExcelUploader onFileSelect={handleFileSelect} />
+        {selectedFile && (
+          <div className="mt-2">
+            <span>Archivo listo: {selectedFile.name}</span>{' '}
+            <button className="btn btn-success btn-sm ms-2" onClick={confirmImport}>
+              Confirmar importación
+            </button>
+          </div>
+        )}
+      </div>
+      */}
       <h3 className="mt-5 mb-3">Escuelas Registradas</h3>
       <table className="table">
         <thead>

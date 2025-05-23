@@ -1,0 +1,30 @@
+.tableResponsive {
+  max-width: 100%;
+  overflow-x: auto;
+  position: relative;
+}
+
+.stickyColumn {
+  position: sticky;
+  background: white;
+  z-index: 1;
+}
+
+.stickyCarnet {
+  left: 0;
+}
+
+.stickyName {
+  left: 100px;
+}
+
+.expandableHeader {
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.finalGrade {
+  background-color: #f8f9fa;
+  font-weight: bold;
+}

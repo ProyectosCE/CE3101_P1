@@ -1,180 +1,204 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaDownload, FaCheck, FaTimes, FaComment } from 'react-icons/fa'
 import FeedbackModal from './FeedbackModal'
 import GroupMembersModal from './GroupMembersModal'
 import { getFileType, getFileIcon } from '../../../utils/fileIcons'
+import { entregasApi } from '@/Functions/Professor/entregasApi'
+import { rubrosApi, evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
+import type { Evaluacion } from '@/Functions/Professor/evaluationsApi'
+import type { Entrega } from '@/Functions/Professor/entregasApi'
 
+// Interfaces that match the desired UI structure
 interface GroupMember {
-  carnet: string
-  name: string
+  carnet: string;
+  name: string;
 }
 
 interface Group {
-  id: string
-  name: string
-  members: GroupMember[]
+  id: string;
+  name: string;
+  members: GroupMember[];
 }
 
 interface Student {
-  id: string
-  carnet: string
-  name: string
+  id: string;
+  carnet: string;
+  name: string;
   submission?: {
-    file: string
-    submittedAt: string
-  }
-  grade?: number
-  feedback?: string
-  published: boolean
-  group?: Group
+    file: string;
+    submittedAt: string;
+  };
+  grade?: number;
+  feedback?: string;
+  published: boolean;
+  group?: Group;
 }
 
 interface Activity {
-  id: string
-  name: string
-  published: boolean
-  isGroupWork: boolean
-  students: Student[]
+  id: string;
+  name: string;
+  published: boolean;
+  isGroupWork: boolean;
+  students: Student[];
 }
 
 interface Rubric {
-  id: string
-  name: string
-  activities: Activity[]
+  id: string;
+  name: string;
+  activities: Activity[];
 }
 
-// Mock data - replace with API calls
-const mockData: Rubric[] = [
-  {
-    id: '1',
-    name: 'Quices',
-    activities: [
-      {
-        id: 'q1',
-        name: 'Quiz 1 - Introducción a Bases de Datos',
-        published: false,
-        isGroupWork: false,
-        students: [
-          {
-            id: 's1',
-            carnet: '2020123456',
-            name: 'Juan Pérez',
-            submission: {
-              file: 'quiz1.pdf',
-              submittedAt: '2023-10-15T14:30:00Z'
-            },
-            grade: 85,
-            feedback: 'Buen trabajo',
-            published: false
-          },
-          {
-            id: 's2',
-            carnet: '2020098765',
-            name: 'María Rodríguez',
-            published: false
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Tareas',
-    activities: [
-      {
-        id: 't1',
-        name: 'Tarea 1 - Modelado ER',
-        published: false,
-        isGroupWork: true,
-        students: [
-          {
-            id: 'g1',
-            carnet: 'GRUPO-01',
-            name: 'Equipo Alpha',
-            group: {
-              id: 'g1',
-              name: 'Equipo Alpha',
-              members: [
-                { carnet: '2020123456', name: 'Juan Pérez' },
-                { carnet: '2020098765', name: 'María Rodríguez' },
-                { carnet: '2020111222', name: 'Carlos Sánchez' }
-              ]
-            },
-            submission: {
-              file: 'tarea1.pdf',
-              submittedAt: '2023-10-16T23:45:00Z'
-            },
-            grade: 90,
-            feedback: 'Excelente trabajo en equipo',
-            published: false
-          }
-        ]
-      }
-    ]
-  }
-]
+// Helper function to convert Entrega to Student
+const convertEntregaToStudent = (entrega: Entrega): Student => ({
+  id: entrega.identrega,
+  carnet: entrega.grupal ? entrega.grupo!.idGrupo : entrega.estudiante!.carnet,
+  name: entrega.grupal ? entrega.grupo!.nombreGrupo : entrega.estudiante!.nombre,
+  submission: entrega.entregado ? {
+    file: entrega.idDocumentoEntrega!,
+    submittedAt: `${entrega.fechaEntrega}T${entrega.horaEntrega}`
+  } : undefined,
+  grade: entrega.calificacion,
+  feedback: entrega.comentario,
+  published: entrega.calificacionPublicada,
+  group: entrega.grupal ? {
+    id: entrega.grupo!.idGrupo,
+    name: entrega.grupo!.nombreGrupo,
+    members: entrega.grupo!.estudiantes.map(est => ({
+      carnet: est.carnet,
+      name: est.nombre
+    }))
+  } : undefined
+});
 
 const SubmissionManager: React.FC = () => {
-  const [expandedRubric, setExpandedRubric] = useState<string | null>(null)
+  const [rubrics, setRubrics] = useState<Rubric[]>([])
   const [expandedActivity, setExpandedActivity] = useState<string | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [showGroupModal, setShowGroupModal] = useState(false)
 
-  const handleDownloadAll = (activityId: string) => {
-    // API call to download all submissions
-    console.log('Downloading all submissions for:', activityId)
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    const [rubricsRes, evaluacionesRes] = await Promise.all([
+      rubrosApi.getRubros(),
+      evaluacionesApi.getEvaluaciones()
+    ]);
+
+    // Transform data to match the desired structure
+    const rubricsWithActivities = await Promise.all(
+      rubricsRes.data.rubros.map(async (rubric) => {
+        const activities = await Promise.all(
+          evaluacionesRes.data.evaluaciones
+            .filter(evaluation => evaluation.idRubro === rubric.id)
+            .map(async (evaluation) => {
+              const { data } = await entregasApi.getEntregasByEvaluacion(evaluation.id);
+              
+              // Filter entregas that belong to this evaluation
+              const filteredEntregas = data.entregas.filter(entrega => 
+                entrega.idEvaluacion === evaluation.id
+              );
+              
+              const students: Student[] = filteredEntregas.map(entrega => ({
+                id: entrega.identrega,
+                carnet: entrega.grupal ? entrega.grupo!.idGrupo : entrega.estudiante!.carnet,
+                name: entrega.grupal ? entrega.grupo!.nombreGrupo : entrega.estudiante!.nombre,
+                submission: entrega.entregado ? {
+                  file: entrega.idDocumentoEntrega!,
+                  submittedAt: `${entrega.fechaEntrega}T${entrega.horaEntrega}`
+                } : undefined,
+                grade: entrega.calificacion,
+                feedback: entrega.comentario,
+                published: entrega.calificacionPublicada,
+                group: entrega.grupal ? {
+                  id: entrega.grupo!.idGrupo,
+                  name: entrega.grupo!.nombreGrupo,
+                  members: entrega.grupo!.estudiantes.map(est => ({
+                    carnet: est.carnet,
+                    name: est.nombre
+                  }))
+                } : undefined
+              }));
+
+              return {
+                id: evaluation.id,
+                name: evaluation.nombreRubro,
+                published: false,
+                isGroupWork: evaluation.trabajoGrupal,
+                students
+              };
+            })
+        );
+
+        return {
+          id: rubric.id,
+          name: rubric.nombre,
+          activities: activities
+        };
+      })
+    );
+
+    setRubrics(rubricsWithActivities);
+  };
+
+  const handleDownloadAll = async (activityId: string) => {
+    // Implementation pending
   }
 
-  const handleGradeChange = (
-    studentId: string,
-    activityId: string,
-    value: number
-  ) => {
-    // API call to update grade
-    console.log('Updating grade:', { studentId, activityId, value })
-  }
-
-  const handleFeedbackChange = (
-    studentId: string,
-    activityId: string,
-    feedback: string
-  ) => {
-    // API call to update feedback
-    console.log('Updating feedback:', { studentId, activityId, feedback })
-  }
-
-  const togglePublishActivity = (activityId: string) => {
-    // API call to toggle activity publication
-    console.log('Toggling activity publication:', activityId)
-  }
-
-  const togglePublishStudent = (studentId: string, activityId: string) => {
-    // API call to toggle student grade publication
-    console.log('Toggling student publication:', { studentId, activityId })
+  const handleGradeChange = async (studentId: string, activityId: string, value: number) => {
+    try {
+      await entregasApi.updateCalificacion(studentId, { calificacion: value });
+      await loadData(); // Refresh data
+    } catch (error) {
+      console.error('Error updating grade:', error);
+    }
   }
 
   const handleFeedback = (student: Student) => {
-    setSelectedStudent(student)
-    setShowFeedbackModal(true)
+    setSelectedStudent(student);
+    setShowFeedbackModal(true);
   }
 
-  const handleSaveFeedback = ({ comment, file }: { comment: string; file: File | null }) => {
-    if (!selectedStudent) return
+  const handleSaveFeedback = async ({ comment, file }: { comment: string; file: File | null }) => {
+    if (!selectedStudent) return;
 
-    // API call to save feedback
-    console.log('Saving feedback:', {
-      studentId: selectedStudent.id,
-      comment,
-      file
-    })
+    try {
+      await entregasApi.updateCalificacion(selectedStudent.id, {
+        calificacion: selectedStudent.grade || 0,
+        comentario: comment
+      });
+
+      if (file) {
+        await entregasApi.uploadRetroalimentacion(selectedStudent.id, file);
+      }
+
+      await loadData();
+      setShowFeedbackModal(false);
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+    }
+  }
+
+  const togglePublishActivity = async (activityId: string) => {
+    // Implementation pending
+  }
+
+  const togglePublishStudent = async (studentId: string, activityId: string) => {
+    try {
+      await entregasApi.togglePublicacion(studentId);
+      await loadData();
+    } catch (error) {
+      console.error('Error toggling publication:', error);
+    }
   }
 
   const handleViewGroup = (group: Group | undefined) => {
     if (group) {
-      setSelectedGroup(group)
-      setShowGroupModal(true)
+      setSelectedGroup(group);
+      setShowGroupModal(true);
     }
   }
 
@@ -184,7 +208,7 @@ const SubmissionManager: React.FC = () => {
         <h3>Gestión de Entregas</h3>
       </div>
 
-      {mockData.map(rubric => (
+      {rubrics.map(rubric => (
         <div key={rubric.id} className="mb-4">
           <h5 className="border-bottom pb-2 mb-3">{rubric.name}</h5>
           
@@ -253,7 +277,7 @@ const SubmissionManager: React.FC = () => {
                                       {student.group && (
                                         <button
                                           className="btn btn-link btn-sm p-0"
-                                          onClick={() => student.group && handleViewGroup(student.group)}
+                                          onClick={() => handleViewGroup(student.group)}
                                         >
                                           <i className="fas fa-users text-info" title="Ver integrantes"></i>
                                         </button>
@@ -266,14 +290,14 @@ const SubmissionManager: React.FC = () => {
                                 {!activity.isGroupWork && <td>{student.name}</td>}
                                 <td>
                                   {student.submission ? (
-                                    <a 
-                                      href={`/api/submissions/${student.submission.file}`}
+                                    <button
                                       className="btn btn-outline-secondary btn-sm text-start"
                                       style={{ minWidth: '200px' }}
+                                      onClick={() => entregasApi.downloadEntrega(student.id)}
                                     >
                                       <i className={`${getFileIcon(getFileType(student.submission.file))} me-2`}></i>
                                       {student.submission.file}
-                                    </a>
+                                    </button>
                                   ) : (
                                     <span className="text-muted">
                                       <i className="fas fa-times-circle me-1"></i>
@@ -320,16 +344,12 @@ const SubmissionManager: React.FC = () => {
                                         ? 'btn-success' 
                                         : 'btn-outline-success'
                                     }`}
-                                    onClick={() => togglePublishStudent(
-                                      student.id,
-                                      activity.id
-                                    )}
+                                    onClick={() => togglePublishStudent(student.id, activity.id)}
                                     title={student.published ? 'Publicado' : 'Sin publicar'}
                                   >
                                     {student.published ? <FaCheck /> : <FaTimes />}
                                   </button>
                                 </td>
-
                               </tr>
                             ))}
                           </tbody>
@@ -344,6 +364,7 @@ const SubmissionManager: React.FC = () => {
         </div>
       ))}
 
+      {/* Modals */}
       <FeedbackModal
         show={showFeedbackModal}
         onHide={() => setShowFeedbackModal(false)}
@@ -359,7 +380,7 @@ const SubmissionManager: React.FC = () => {
         members={selectedGroup?.members || []}
       />
     </div>
-  )
-}
+  );
+};
 
-export default SubmissionManager
+export default SubmissionManager;

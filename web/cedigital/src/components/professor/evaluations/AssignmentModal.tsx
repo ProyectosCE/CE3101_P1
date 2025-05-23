@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Modal } from 'react-bootstrap'
-import { FaFileUpload, FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
-import { useGroupsStore } from '@/stores/groupsStore'
+import { FaFileUpload } from 'react-icons/fa'
 import type { Assignment, Rubric } from '@/types/evaluation'
-import type { Group, GroupActivity } from '@/types/groups'
+import { evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
+import { categoryApi } from '@/Functions/Professor/groupManagerApi'
+import type { Category } from '@/Functions/Professor/groupManagerApi'
 
 interface AssignmentModalProps {
   show: boolean
@@ -11,10 +12,6 @@ interface AssignmentModalProps {
   onSave: (assignment: Assignment) => void
   assignment: Assignment | null
   rubrics: Rubric[]
-  groups: Group[]
-  groupTypes: GroupActivity[]
-  onCreateGroups: (activityName: string) => void
-  onEditGroups: (groupTypeId: string) => void
 }
 
 const AssignmentModal: React.FC<AssignmentModalProps> = ({
@@ -23,10 +20,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   onSave,
   assignment,
   rubrics,
-  onCreateGroups,
-  onEditGroups
 }) => {
-  const { groupTypes, getGroupsByType } = useGroupsStore()
   const [form, setForm] = useState<Assignment>({
     id: '',
     title: '',
@@ -37,17 +31,17 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     dueTime: '',
     isGroupWork: false,
     instructionsFile: null,
-    groupTypeId: undefined,
-    groupOption: undefined
+    groupTypeId: undefined
   })
+  const [categories, setCategories] = useState<Category[]>([])
 
   useEffect(() => {
     if (show) {
       if (assignment) {
+        // When editing, preserve the linked category
         setForm({
           ...assignment,
-          groupTypeId: assignment.groupTypeId || undefined,
-          groupOption: assignment.groupOption || undefined
+          groupTypeId: assignment.linkedCategoryId || assignment.groupTypeId || undefined,
         })
       } else {
         setForm({
@@ -60,16 +54,74 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           dueTime: '',
           isGroupWork: false,
           instructionsFile: null,
-          groupTypeId: undefined,
-          groupOption: undefined
+          groupTypeId: undefined
         })
       }
+
+      // Load categories
+      categoryApi.getCategories()
+        .then(response => {
+          setCategories(response.data.categorias)
+        })
+        .catch(error => {
+          console.error('Error loading categories:', error)
+        })
     }
   }, [show, assignment])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(form)
+    
+    try {
+      // Convert Assignment to API format
+      const apiAssignment = {
+        idRubro: form.rubricId,
+        nombreRubro: form.title,
+        porcentaje: form.weight,
+        descripcion: form.description,
+        fechaEntrega: form.dueDate,
+        horaEntrega: form.dueTime,
+        trabajoGrupal: form.isGroupWork,
+        idDocumentoInstrucciones: ''
+      }
+
+      // Save the assignment
+      if (form.id) {
+        await evaluacionesApi.updateEvaluacion(form.id, apiAssignment)
+      } else {
+        const { data } = await evaluacionesApi.createEvaluacion(apiAssignment)
+        form.id = data.evaluacion.id
+      }
+
+      // Handle file upload if present
+      if (form.instructionsFile) {
+        await evaluacionesApi.uploadInstrucciones(form.id, form.instructionsFile)
+      }
+
+      // Handle group category relationship
+      if (form.isGroupWork && form.groupTypeId) {
+        // If there's an existing relationship but category changed, delete old one
+        if (form.linkedCategoryId && form.linkedCategoryId !== form.groupTypeId) {
+          await evaluacionesApi.deleteEvaluacionXGrupo(form.id)
+        }
+        
+        // Create new relationship if needed
+        if (!form.linkedCategoryId || form.linkedCategoryId !== form.groupTypeId) {
+          await evaluacionesApi.createEvaluacionXGrupo({
+            idEvaluacion: form.id,
+            idCategoria: form.groupTypeId
+          })
+        }
+      } else if (!form.isGroupWork && form.linkedCategoryId) {
+        // Remove relationship if evaluation is no longer group work
+        await evaluacionesApi.deleteEvaluacionXGrupo(form.id)
+      }
+
+      onSave(form)
+    } catch (error) {
+      console.error('Error saving assignment:', error)
+      alert('Error al guardar la evaluación')
+    }
   }
 
   return (
@@ -167,7 +219,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
             </div>
 
             <div className="col-12">
-              <div className="form-check mb-2">
+              <div className="form-check mb-3">
                 <input
                   type="checkbox"
                   className="form-check-input"
@@ -177,7 +229,6 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                     setForm(prev => ({ 
                       ...prev, 
                       isGroupWork: e.target.checked,
-                      groupOption: undefined,
                       groupTypeId: undefined 
                     }))
                   }}
@@ -188,91 +239,24 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
               </div>
 
               {form.isGroupWork && (
-                <div className="card mt-2">
-                  <div className="card-body">
-                    <div className="mb-3">
-                      <label className="form-label d-block">Configuración de grupos</label>
-                      <div className="btn-group" role="group">
-                        <input
-                          type="radio"
-                          className="btn-check"
-                          name="groupOption"
-                          id="existing"
-                          checked={form.groupOption === 'existing'}
-                          onChange={() => setForm(prev => ({ ...prev, groupOption: 'existing' }))
-                          }
-                        />
-                        <label className="btn btn-outline-primary" htmlFor="existing">
-                          Usar grupos existentes
-                        </label>
-
-                        <input
-                          type="radio"
-                          className="btn-check"
-                          name="groupOption"
-                          id="new"
-                          checked={form.groupOption === 'new'}
-                          onChange={() => setForm(prev => ({ ...prev, groupOption: 'new' }))
-                          }
-                        />
-                        <label className="btn btn-outline-primary" htmlFor="new">
-                          Crear nuevos grupos
-                        </label>
-                      </div>
-                    </div>
-
-                    {form.groupOption === 'existing' && (
-                      <div className="mb-3">
-                        <select
-                          className="form-select mb-2"
-                          value={form.groupTypeId || ''}
-                          onChange={e => setForm(prev => ({ ...prev, groupTypeId: e.target.value }))}
-                        >
-                          <option value="">Seleccionar categoría de grupos...</option>
-                          {groupTypes.map(type => {
-                            const groupCount = getGroupsByType(type.id).length
-                            return (
-                              <option key={type.id} value={type.id}>
-                                {type.name} ({groupCount} grupos)
-                              </option>
-                            )
-                          })}
-                        </select>
-                        {form.groupTypeId && (
-                          <div className="d-flex justify-content-end gap-2">
-                            <button
-                              type="button"
-                              className="btn btn-outline-primary btn-sm"
-                              onClick={() => onEditGroups(form.groupTypeId!)}
-                            >
-                              <FaEdit className="me-1" /> Editar grupos
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-outline-danger btn-sm"
-                            >
-                              <FaTrash className="me-1" /> Cambiar categoría
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {form.groupOption === 'new' && (
-                      <div>
-                        <p className="text-muted">
-                          Se creará una nueva categoría de grupos llamada "{form.title}"
-                        </p>
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary"
-                          onClick={() => onCreateGroups(form.title)}
-                        >
-                          <FaPlus className="me-1" /> Gestionar grupos
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="mb-3">
+                  <label className="form-label">Categoría de grupos</label>
+                  <select
+                    className="form-select"
+                    value={form.groupTypeId || ''}
+                    onChange={e => setForm(prev => ({ 
+                      ...prev, 
+                      groupTypeId: e.target.value 
+                    }))}
+                    required
+                  >
+                    <option value="">Seleccionar categoría...</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>
@@ -282,7 +266,11 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           <button type="button" className="btn btn-secondary" onClick={onHide}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn-primary">
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={form.isGroupWork && !form.groupTypeId}
+          >
             Guardar
           </button>
         </Modal.Footer>

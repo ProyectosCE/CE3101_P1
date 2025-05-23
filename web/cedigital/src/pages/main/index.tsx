@@ -1,33 +1,49 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '@/components/global/Header'
 import SemesterSection from '@/components/courses/SemesterSection'
 import { Semester } from '@/types/course'
-
-// Mock data - replace with actual API call later
-const mockSemesters: Semester[] = [
-  {
-    id: '1-2025',
-    name: '1 SEMESTRE 2025',
-    isActive: true,
-    courses: [
-      { code: 'CE3101', name: 'BASES DE DATOS', group: '01', professor: 'Juan Perez' },
-      { code: 'CE1104', name: 'PROGRAMACIÓN', group: '02', professor: 'Maria Rodriguez' },
-    ]
-  },
-  {
-    id: 'V-2024',
-    name: 'VERANO 2024',
-    isActive: false,
-    courses: [
-      { code: 'MA1101', name: 'MATEMÁTICA', group: '01', professor: 'Pedro Gomez' },
-    ]
-  },
-  // ...add more semesters
-]
+import { getMainGroups } from '@/Functions/mainGroupsApi'
 
 const Main: React.FC = () => {
   const user = useAuthStore((state) => state.user)
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    getMainGroups()
+      .then(({ groups }) => {
+        // Agrupar por periodo
+        const semesterGroups = groups.reduce((acc, group) => {
+          const semesterId = `${group.periodo}-${group.annio}`
+          if (!acc[semesterId]) {
+            acc[semesterId] = {
+              id: semesterId,
+              name: `${group.periodo} SEMESTRE ${group.annio}`,
+              isActive: group.estado === 'Activo',
+              courses: []
+            }
+          }
+          
+          acc[semesterId].courses.push({
+            code: group.courseCode,
+            name: group.courseCode, // TODO: get course name from another API
+            group: group.groupNumber,
+            professor: group.profesores.map(p => p.nombre).join(', ')
+          })
+          
+          return acc
+        }, {} as Record<string, Semester>)
+
+        setSemesters(Object.values(semesterGroups))
+      })
+      .catch(error => {
+        console.error('Error loading groups:', error)
+        setSemesters([])
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   if (!user) return null
 
@@ -35,9 +51,15 @@ const Main: React.FC = () => {
     <div className="main-layout">
       <Header username={user.username} />
       <div className="container py-4">
-        {mockSemesters.map(semester => (
-          <SemesterSection key={semester.id} semester={semester} />
-        ))}
+        {loading ? (
+          <div className="text-center">Cargando grupos...</div>
+        ) : semesters.length > 0 ? (
+          semesters.map(semester => (
+            <SemesterSection key={semester.id} semester={semester} />
+          ))
+        ) : (
+          <div className="text-center text-muted">No hay grupos disponibles</div>
+        )}
       </div>
     </div>
   )

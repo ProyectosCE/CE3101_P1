@@ -1,81 +1,72 @@
-import React, { useState } from 'react'
-import { Modal } from 'react-bootstrap'
+import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
-import { v4 as uuidv4 } from 'uuid'
 import AssignmentModal from './AssignmentModal'
-import GroupManager from '../GroupManager'
-import { useGroupsStore } from '@/stores/groupsStore'
-import type { Group, GroupActivity } from '@/types/groups'
+import { rubrosApi, evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
+import type { Assignment, Rubric, EvaluacionGrupo } from '@/types/evaluation'
 
-interface Rubric {
-  id: string
-  name: string
-  weight: number
+interface Rubro {
+  id: string;
+  nombre: string;
+  porcentaje: number;
 }
 
-interface Assignment {
-  id: string
-  title: string
-  description: string
-  rubricId: string
-  weight: number
-  dueDate: string
-  dueTime: string
-  isGroupWork: boolean
-  instructionsFile: File | null
+interface Evaluacion {
+  id: string;
+  nombreRubro: string;
+  descripcion: string;
+  idRubro: string;
+  porcentaje: number;
+  fechaEntrega: string;
+  horaEntrega: string;
+  trabajoGrupal: boolean;
+  idDocumentoInstrucciones: string;
 }
-
-// Mock data - replace with API call
-const mockRubrics: Rubric[] = [
-  { id: '1', name: 'Quices', weight: 30 },
-  { id: '2', name: 'Exámenes', weight: 30 },
-  { id: '3', name: 'Proyectos', weight: 40 },
-]
-
-const initialAssignments: Assignment[] = [
-  {
-    id: uuidv4(),
-    title: 'Quiz 1 - Introducción a Bases de Datos',
-    description: 'Evaluación sobre conceptos básicos de bases de datos, modelo relacional y SQL básico.',
-    rubricId: '1', // Quices
-    weight: 10,
-    dueDate: '2024-03-15',
-    dueTime: '23:59',
-    isGroupWork: false,
-    instructionsFile: null
-  },
-  {
-    id: uuidv4(),
-    title: 'Primer Examen Parcial',
-    description: 'Evaluación comprensiva sobre los temas vistos en la primera mitad del curso.',
-    rubricId: '2', // Exámenes
-    weight: 15,
-    dueDate: '2024-04-20',
-    dueTime: '11:00',
-    isGroupWork: false,
-    instructionsFile: null
-  },
-  {
-    id: uuidv4(),
-    title: 'Proyecto 1 - Diseño de Base de Datos',
-    description: 'Implementación de una base de datos relacional para un sistema de gestión académica.',
-    rubricId: '3', // Proyectos
-    weight: 20,
-    dueDate: '2024-05-10',
-    dueTime: '23:59',
-    isGroupWork: true,
-    instructionsFile: null
-  }
-]
 
 const AssignmentManager: React.FC = () => {
-  const { groups, groupTypes, addGroupType, updateGroups, getGroupsByType } = useGroupsStore()
-  const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments)
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [rubrics, setRubrics] = useState<Rubric[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null)
-  const [showGroupManager, setShowGroupManager] = useState(false)
-  const [groupManagerTitle, setGroupManagerTitle] = useState('')
-  const [selectedGroupType, setSelectedGroupType] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Load data
+  useEffect(() => {
+    Promise.all([
+      rubrosApi.getRubros(),
+      evaluacionesApi.getEvaluaciones(),
+      evaluacionesApi.getEvaluacionesXGrupo()
+    ]).then(([rubricsRes, assignmentsRes, relationshipsRes]) => {
+      // Convert rubrics
+      const convertedRubrics = rubricsRes.data.rubros.map((r: Rubro) => ({
+        id: r.id,
+        name: r.nombre,
+        weight: r.porcentaje
+      }))
+      setRubrics(convertedRubrics)
+
+      // Get relationships map
+      const relationshipsMap = new Map(
+        relationshipsRes.data.evaluacionesXgrupo.map((r: EvaluacionGrupo) => [r.idEvaluacion, r.idCategoria])
+      )
+
+      // Convert assignments with relationships and ensure type safety
+      const convertedAssignments: Assignment[] = assignmentsRes.data.evaluaciones.map((a: Evaluacion) => ({
+        id: a.id,
+        title: a.nombreRubro,
+        description: a.descripcion,
+        rubricId: a.idRubro,
+        weight: a.porcentaje,
+        dueDate: a.fechaEntrega,
+        dueTime: a.horaEntrega,
+        isGroupWork: a.trabajoGrupal,
+        instructionsFile: null,
+        linkedCategoryId: relationshipsMap.get(a.id),
+        groupOption: relationshipsMap.has(a.id) ? 'existing' as const : undefined,
+        groupTypeId: relationshipsMap.get(a.id)
+      }))
+      setAssignments(convertedAssignments)
+    }).finally(() => setLoading(false))
+  }, [])
 
   const handleEdit = (assignment: Assignment) => {
     setEditingAssignment(assignment)
@@ -87,61 +78,62 @@ const AssignmentManager: React.FC = () => {
     setShowModal(true)
   }
 
-  const handleSave = (assignment: Assignment) => {
-    if (editingAssignment) {
-      setAssignments(prev => prev.map(a => 
-        a.id === assignment.id ? assignment : a
-      ))
-    } else {
-      setAssignments(prev => [...prev, { ...assignment, id: uuidv4() }])
+  const handleSave = async (assignment: Assignment) => {
+    const apiAssignment = {
+      idRubro: assignment.rubricId,
+      nombreRubro: assignment.title,
+      porcentaje: assignment.weight,
+      descripcion: assignment.description,
+      fechaEntrega: assignment.dueDate,
+      horaEntrega: assignment.dueTime,
+      trabajoGrupal: assignment.isGroupWork,
+      idDocumentoInstrucciones: ''
     }
-    setShowModal(false)
-  }
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar esta evaluación?')) {
-      setAssignments(prev => prev.filter(a => a.id !== id))
-    }
-  }
+    try {
+      if (editingAssignment) {
+        await evaluacionesApi.updateEvaluacion(assignment.id, apiAssignment)
+      } else {
+        const { data } = await evaluacionesApi.createEvaluacion(apiAssignment)
+        assignment.id = data.evaluacion.id
+      }
 
-  const handleCreateGroups = (activityName: string) => {
-    const newGroupType: GroupActivity = {
-      id: activityName.toLowerCase().replace(/\s+/g, '-'),
-      name: activityName
-    }
-    addGroupType(newGroupType)
-    setGroupManagerTitle(activityName)
-    setSelectedGroupType(newGroupType.id)
-    setShowGroupManager(true)
-    setShowModal(false)
-  }
+      if (assignment.instructionsFile) {
+        await evaluacionesApi.uploadInstrucciones(assignment.id, assignment.instructionsFile)
+      }
 
-  const handleGroupManagerClose = () => {
-    setShowGroupManager(false)
-    setShowModal(true)
-  }
-
-  const handleGroupManagerSave = (newGroups: Group[]) => {
-    const currentGroups = groups.filter(g => g.activityId !== selectedGroupType)
-    updateGroups([...currentGroups, ...newGroups])
-    handleGroupManagerClose()
-  }
-
-  const handleEditGroups = (groupTypeId: string) => {
-    const groupType = groupTypes.find(t => t.id === groupTypeId)
-    if (groupType) {
-      setGroupManagerTitle(groupType.name)
-      setSelectedGroupType(groupTypeId)
-      setShowGroupManager(true)
+      setAssignments(prev => editingAssignment 
+        ? prev.map(a => a.id === assignment.id ? assignment : a)
+        : [...prev, assignment]
+      )
       setShowModal(false)
+    } catch (error) {
+      console.error('Error saving assignment:', error)
+      alert('Error al guardar la evaluación')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar esta evaluación?')) return
+    
+    try {
+      await evaluacionesApi.deleteEvaluacion(id)
+      setAssignments(prev => prev.filter(a => a.id !== id))
+    } catch (error) {
+      console.error('Error deleting assignment:', error)
+      alert('Error al eliminar la evaluación')
     }
   }
 
   // Group assignments by rubric
-  const assignmentsByRubric = mockRubrics.map(rubric => ({
+  const assignmentsByRubric = rubrics.map(rubric => ({
     ...rubric,
     assignments: assignments.filter(a => a.rubricId === rubric.id)
   }))
+
+  if (loading) {
+    return <div className="text-center">Cargando...</div>
+  }
 
   return (
     <div className="assignment-manager">
@@ -156,34 +148,38 @@ const AssignmentManager: React.FC = () => {
         <div key={rubric.id} className="mb-4">
           <h5 className="border-bottom pb-2">{rubric.name} ({rubric.weight}%)</h5>
           <div className="row g-3">
-            {rubric.assignments.map(assignment => (
-              <div key={assignment.id} className="col-md-4">
-                <div className="card h-100">
-                  <div className="card-body">
-                    <h6 className="card-title">{assignment.title}</h6>
-                    <p className="card-text text-muted">
-                      Entrega: {assignment.dueDate} {assignment.dueTime}
-                    </p>
-                  </div>
-                  <div className="card-footer bg-transparent border-top-0">
-                    <div className="d-flex justify-content-end gap-2">
-                      <button
-                        className="btn btn-outline-primary btn-sm"
-                        onClick={() => handleEdit(assignment)}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="btn btn-outline-danger btn-sm"
-                        onClick={() => handleDelete(assignment.id)}
-                      >
-                        <FaTrash />
-                      </button>
+            {rubric.assignments.length === 0 ? (
+              <div className="text-muted">No hay evaluaciones asignadas a este rubro.</div>
+            ) : (
+              rubric.assignments.map(assignment => (
+                <div key={assignment.id} className="col-md-4">
+                  <div className="card h-100">
+                    <div className="card-body">
+                      <h6 className="card-title">{assignment.title}</h6>
+                      <p className="card-text text-muted">
+                        Entrega: {assignment.dueDate} {assignment.dueTime}
+                      </p>
+                    </div>
+                    <div className="card-footer bg-transparent border-top-0">
+                      <div className="d-flex justify-content-end gap-2">
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => handleEdit(assignment)}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => handleDelete(assignment.id)}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       ))}
@@ -193,32 +189,8 @@ const AssignmentManager: React.FC = () => {
         onHide={() => setShowModal(false)}
         onSave={handleSave}
         assignment={editingAssignment}
-        rubrics={mockRubrics}
-        groups={groups}
-        groupTypes={groupTypes}
-        onCreateGroups={handleCreateGroups}
-        onEditGroups={handleEditGroups}
+        rubrics={rubrics}
       />
-
-      {showGroupManager && (
-        <Modal show={true} onHide={handleGroupManagerClose} size="xl">
-          <Modal.Header closeButton>
-            <Modal.Title>
-              Gestionar Grupos - {groupManagerTitle}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="p-0">
-            <GroupManager
-              initialGroups={groups.filter(g => g.activityId === selectedGroupType)}
-              activityId={selectedGroupType}
-              activityName={groupManagerTitle}
-              onSave={handleGroupManagerSave}
-              standalone={false}
-              singleCategory={true}
-            />
-          </Modal.Body>
-        </Modal>
-      )}
     </div>
   )
 }

@@ -1,121 +1,236 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import GroupModal from './groups/GroupModal'
 import GroupTypeModal from './groups/GroupTypeModal'
-import type { Student, GroupActivity, Group } from '@/types/groups'
-import { useGroupsStore } from '@/stores/groupsStore'
+import { categoryApi, minigroupApi } from '@/Functions/Professor/groupManagerApi'
+import { getAllStudentsByCourse } from '@/Functions/Professor/studentsApi'
+import type { Category, Minigroup} from '@/Functions/Professor/groupManagerApi'
+import type { Group, GroupActivity } from '@/types/groups'
+import type { Student as GroupStudent } from '@/types/groups'
 
-// Mock data - replace with API call
-const mockStudents: Student[] = [
-  { carnet: '2020123456', apellido1: 'Pérez', apellido2: 'García', nombre: 'Juan' },
-  { carnet: '2020654321', apellido1: 'Rodríguez', apellido2: 'López', nombre: 'María' },
-  { carnet: '2020111222', apellido1: 'González', apellido2: 'Martínez', nombre: 'Ana' },
-]
-
-interface GroupManagerProps {
-  initialGroups?: Group[]
-  activityId?: string | null
-  activityName?: string
-  onSave?: (groups: Group[]) => void
-  standalone?: boolean
-  singleCategory?: boolean
+// Update Student interface to match API data
+interface StudentInfo {
+  carnet: string
+  nombre: string
 }
 
+interface GroupManagerProps {
+  initialGroups?: Minigroup[]
+  categoryId?: string | null
+  categoryName?: string
+  onSave?: (groups: Minigroup[]) => void
+  standalone?: boolean
+  singleCategory?: boolean
+  courseId: string;
+}
+
+// Update type conversion functions
+const categoryToGroupType = (category: Category): GroupActivity => ({
+  id: category.id,
+  name: category.nombre
+})
+
+const groupTypeToNewCategory = (groupType: GroupActivity): Omit<Category, 'id'> => ({
+  nombre: groupType.name
+})
+
+const minigroupToGroup = (mini: Minigroup): Group => ({
+  id: mini.id,
+  name: mini.nombre,
+  activityId: mini.idCat,
+  members: mini.estudiantes.map(student => ({
+    carnet: student.carnet,
+    nombre: student.nombre,
+    apellido1: '',
+    apellido2: ''
+  }))
+})
+
+const groupToMinigroup = (group: Group): Minigroup => ({
+  id: group.id,
+  idCat: group.activityId || '',
+  nombre: group.name,
+  estudiantes: group.members.map(m => ({ 
+    carnet: m.carnet,
+    nombre: m.nombre
+  }))
+})
+
 const GroupManager: React.FC<GroupManagerProps> = ({
-  initialGroups = [],
-  activityId = null,
-  activityName = '',
+  categoryId = null,
+  categoryName = '',
   onSave,
   standalone = true,
-  singleCategory = false
+  singleCategory = false,
+  courseId
 }) => {
-  const { groups: allGroups, groupTypes, addGroup, updateGroup, deleteGroup, getGroupsByType, addGroupType, deleteGroupType } = useGroupsStore()
-  const [groups, setGroups] = useState<Group[]>(
-    singleCategory ? initialGroups : allGroups
-  )
-  const [showModal, setShowModal] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [minigroups, setMinigroups] = useState<Minigroup[]>([])
+  const [loading, setLoading] = useState(true)
   const [expandedType, setExpandedType] = useState<string | null>(null)
   const [showTypeModal, setShowTypeModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<Minigroup | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  // Modified loadData function that can be reused
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const { data: categoriesData } = await categoryApi.getCategories()
+      setCategories(categoriesData.categorias)
+
+      if (categoryId) {
+        const { data: minigroupsData } = await minigroupApi.getMinigroupsByCategory(categoryId)
+        setMinigroups(minigroupsData.minigrupos)
+      } else {
+        const minigroupPromises = categoriesData.categorias.map(category =>
+          minigroupApi.getMinigroupsByCategory(category.id)
+        )
+        const minigroupResponses = await Promise.all(minigroupPromises)
+        const allMinigroups = minigroupResponses.flatMap(response => response.data.minigrupos)
+        // Remove potential duplicates by ID
+        const uniqueMinigroups = Array.from(
+          new Map(allMinigroups.map(group => [group.id, group])).values()
+        )
+        setMinigroups(uniqueMinigroups)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    }
+    setLoading(false)
+  }
+
+  // Load categories and minigroups
+  useEffect(() => {
+    loadData()
+  }, [categoryId])
+
+  // Remove loadMinigroupsForCategory since we load all data at once
+  const handleCategoryClick = (categoryId: string) => {
+    setExpandedType(expandedType === categoryId ? null : categoryId)
+  }
+
+  const handleAddCategory = async (category: Category) => {
+    try {
+      const { data } = await categoryApi.createCategory({
+        nombre: category.nombre
+      })
+      setCategories(prev => [...prev, data.categoria])
+      setShowTypeModal(false)
+    } catch (error) {
+      console.error('Error creating category:', error)
+      alert('Error al crear la categoría')
+    }
+  }
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm('¿Está seguro de eliminar esta categoría y todos sus grupos?')) return
+
+    try {
+      await categoryApi.deleteCategory(categoryId)
+      setCategories(prev => prev.filter(c => c.id !== categoryId))
+    } catch (error) {
+      console.error('Error deleting category:', error)
+      alert('Error al eliminar la categoría')
+    }
+  }
 
   const handleAdd = () => {
-    setEditingGroup(null)
+    setEditingGroup({
+      id: '',
+      idCat: categoryId || '', // Use current category if in single category mode
+      nombre: '',
+      estudiantes: []
+    })
     setShowModal(true)
   }
 
-  const handleEdit = (group: Group) => {
+  const handleEdit = (group: Minigroup) => {
     setEditingGroup(group)
     setShowModal(true)
   }
 
-  const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // Get all students that are already in groups of the same type
-    const assignedStudents = groups
-      .filter(g => {
-        // For general groups, check all general groups
-        if (activityId === null || activityId === 'general') {
-          return g.id !== excludeGroupId && g.activityId === null;
-        }
-        // For activity groups, check only groups of that activity
-        return g.id !== excludeGroupId && g.activityId === activityId;
+  // Update type before saving
+  const handleSaveMinigroup = async (group: Group) => {
+    const minigroup = groupToMinigroup(group)
+    try {
+      if (editingGroup) {
+        await minigroupApi.updateMinigroup(
+          minigroup.idCat,
+          minigroup.id,
+          {
+            nombre: minigroup.nombre,
+            estudiantes: minigroup.estudiantes
+          }
+        )
+        setMinigroups(prev => prev.map(g => g.id === minigroup.id ? minigroup : g))
+      } else {
+        const { data } = await minigroupApi.createMinigroup(
+          minigroup.idCat,
+          {
+            nombre: minigroup.nombre,
+            estudiantes: minigroup.estudiantes,
+            idCat: minigroup.idCat
+          }
+        )
+        setMinigroups(prev => [...prev, data.minigrupo])
+      }
+      setShowModal(false)
+      setEditingGroup(null)
+    } catch (error) {
+      console.error('Error saving minigroup:', error)
+      alert('Error al guardar el grupo')
+    }
+  }
+
+  const getAvailableStudents = (activityId: string | null, excludeGroupId?: string): GroupStudent[] => {
+    // Just return empty array - actual filtering happens in GroupModal
+    return []
+  }
+
+  const handleDeleteMinigroup = async (categoryId: string, groupId: string) => {
+    if (!confirm('¿Está seguro de eliminar este grupo?')) return
+    try {
+      await minigroupApi.deleteMinigroup(categoryId, groupId)
+      setMinigroups(prev => prev.filter(g => g.id !== groupId))
+    } catch (error) {
+      console.error('Error deleting minigroup:', error)
+      alert('Error al eliminar el grupo')
+    }
+  }
+
+  // Update refreshCategories to use loadData
+  const refreshCategories = () => loadData()
+
+  // Update category type
+  const handleAddType = async (groupType: GroupActivity) => {
+    try {
+      await categoryApi.createCategory({
+        nombre: groupType.name
       })
-      .flatMap(g => g.members.map(m => m.carnet));
+      // Refresh categories to get the new one with server-generated ID
+      await refreshCategories()
+      setShowTypeModal(false)
+    } catch (error) {
+      console.error('Error creating category:', error)
+      alert('Error al crear la categoría')
+    }
+  }
 
-    // Filter out students that are already in a group
-    return mockStudents.filter(s => !assignedStudents.includes(s.carnet));
-  };
-
-  const handleSave = (group: Group) => {
-    const updatedGroup = {
-      ...group,
-      activityId: activityId || (group.activityId === 'general' ? null : group.activityId)
+  // Use existing categories from state for list
+  const groupTypesList = React.useMemo(() => {
+    if (singleCategory) {
+      return [{ id: categoryId || '', nombre: categoryName || 'Grupos' }]
     }
     
-    if (editingGroup) {
-      if (standalone) {
-        updateGroup(updatedGroup)
-      }
-      setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g))
-    } else {
-      if (standalone) {
-        addGroup(updatedGroup)
-      }
-      setGroups(prev => [...prev, updatedGroup])
-    }
-    setShowModal(false)
+    // Return categories directly without general group
+    return categories
+  }, [singleCategory, categoryId, categoryName, categories])
 
-    // If being used as sub-component, notify parent of changes
-    if (!standalone && onSave) {
-      onSave([...groups, updatedGroup])
-    }
+  if (loading) {
+    return <div className="text-center">Cargando...</div>
   }
-
-  const handleDelete = (groupId: string) => {
-    if (confirm('¿Está seguro de eliminar este grupo?')) {
-      if (standalone) {
-        deleteGroup(groupId)
-      }
-      setGroups(prev => prev.filter(g => g.id !== groupId))
-    }
-  }
-
-  const handleDeleteType = (typeId: string) => {
-    if (confirm('¿Está seguro de eliminar esta categoría y todos sus grupos?')) {
-      deleteGroupType(typeId)
-      const groupsToDelete = getGroupsByType(typeId)
-      groupsToDelete.forEach(group => deleteGroup(group.id))
-    }
-  }
-
-  // Replace handleAddType to use store's addGroupType
-  const handleAddType = (newType: GroupActivity) => {
-    addGroupType(newType)
-  }
-
-  // Use groupTypes from store instead of activities
-  const groupTypesList = singleCategory 
-    ? [{ id: activityId || 'general', name: activityName || 'Grupos' }]
-    : [{ id: 'general', name: 'Grupos Generales' }, ...groupTypes.filter(t => t.id !== 'general')]
 
   return (
     <div className="group-manager">
@@ -128,7 +243,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
                 className="btn btn-outline-secondary" 
                 onClick={() => setShowTypeModal(true)}
               >
-                <FaPlus className="me-1" /> Nuevo Tipo
+                <FaPlus className="me-1" /> Nueva Categoría
               </button>
               <button className="btn btn-primary" onClick={handleAdd}>
                 <FaPlus className="me-2" /> Nuevo Grupo
@@ -137,30 +252,29 @@ const GroupManager: React.FC<GroupManagerProps> = ({
           </div>
 
           {groupTypesList.map(type => {
-            const typeGroups = getGroupsByType(type.id)
-            console.log(`Groups for ${type.name}:`, typeGroups) // Debug logging
+            const typeGroups = minigroups.filter(g => g.idCat === type.id)
+            console.log(`Groups for ${type.nombre}:`, typeGroups) // Debug logging using nombre instead of name
 
             return (
               <div key={type.id} className="mb-4">
                 <div className="card">
-                  <div className="card-header bg-light d-flex justify-content-between align-items-center">
-                    <div 
-                      className="flex-grow-1 cursor-pointer"
-                      onClick={() => setExpandedType(expandedType === type.id ? null : type.id)}
-                    >
-                      <div className="d-flex align-items-center">
-                        <h6 className="mb-0">{type.name}</h6>
-                        <span className="badge bg-secondary ms-2">
-                          {typeGroups.length} grupo{typeGroups.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
+                  <div 
+                    className="card-header bg-light d-flex justify-content-between align-items-center"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleCategoryClick(type.id)}
+                  >
+                    <div className="d-flex align-items-center">
+                      <h6 className="mb-0">{type.nombre}</h6>
+                      <span className="badge bg-secondary ms-2">
+                        {typeGroups.length} grupo{typeGroups.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
                     {type.id !== 'general' && (
                       <button
                         className="btn btn-outline-danger btn-sm ms-2"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDeleteType(type.id)
+                          handleDeleteCategory(type.id)
                         }}
                       >
                         <FaTrash /> Eliminar Categoría
@@ -177,15 +291,16 @@ const GroupManager: React.FC<GroupManagerProps> = ({
                               <div className="card h-100">
                                 <div className="card-body">
                                   <h6 className="card-title d-flex justify-content-between">
-                                    {group.name}
+                                    {group.nombre}
                                     <span className="badge bg-info">
-                                      {group.members.length} {group.members.length === 1 ? 'miembro' : 'miembros'}
+                                      {group.estudiantes.length} {group.estudiantes.length === 1 ? 'miembro' : 'miembros'}
                                     </span>
                                   </h6>
                                   <div className="small text-muted mt-2">
-                                    {group.members.map(member => (
-                                      <div key={member.carnet}>
-                                        {member.apellido1} {member.apellido2}, {member.nombre}
+                                    {group.estudiantes.map(student => (
+                                      <div key={student.carnet} className="d-flex justify-content-between align-items-center mb-1">
+                                        <span>{student.nombre}</span>
+                                        <span className="text-secondary">{student.carnet}</span>
                                       </div>
                                     ))}
                                   </div>
@@ -200,7 +315,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
                                     </button>
                                     <button
                                       className="btn btn-outline-danger btn-sm"
-                                      onClick={() => handleDelete(group.id)}
+                                      onClick={() => handleDeleteMinigroup(type.id, group.id)}
                                     >
                                       <FaTrash className="me-1" /> Eliminar
                                     </button>
@@ -225,9 +340,14 @@ const GroupManager: React.FC<GroupManagerProps> = ({
           <GroupModal
             show={showModal}
             onHide={() => setShowModal(false)}
-            onSave={handleSave}
-            group={editingGroup}
+            onSave={handleSaveMinigroup}
+            group={editingGroup ? minigroupToGroup(editingGroup) : null}
+            mode={editingGroup?.id ? 'editManager' : 'newManager'}
             getAvailableStudents={getAvailableStudents}
+            availableCategories={categories}
+            selectedCategoryId={categoryId || undefined}
+            courseId={courseId}
+            minigroups={minigroups}
           />
 
           <GroupTypeModal
@@ -247,20 +367,21 @@ const GroupManager: React.FC<GroupManagerProps> = ({
 
           {/* Single category view shows groups directly */}
           <div className="row g-3">
-            {groups.map(group => (
+            {minigroups.map(group => (
               <div key={group.id} className="col-md-4">
                 <div className="card h-100">
                   <div className="card-body">
                     <h6 className="card-title d-flex justify-content-between">
-                      {group.name}
+                      {group.nombre}
                       <span className="badge bg-info">
-                        {group.members.length} {group.members.length === 1 ? 'miembro' : 'miembros'}
+                        {group.estudiantes.length} {group.estudiantes.length === 1 ? 'miembro' : 'miembros'}
                       </span>
                     </h6>
                     <div className="small text-muted mt-2">
-                      {group.members.map(member => (
-                        <div key={member.carnet}>
-                          {member.apellido1} {member.apellido2}, {member.nombre}
+                      {group.estudiantes.map(student => (
+                        <div key={student.carnet} className="d-flex justify-content-between align-items-center mb-1">
+                          <span>{student.nombre}</span>
+                          <span className="text-secondary">{student.carnet}</span>
                         </div>
                       ))}
                     </div>
@@ -275,7 +396,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({
                       </button>
                       <button
                         className="btn btn-outline-danger btn-sm"
-                        onClick={() => handleDelete(group.id)}
+                        onClick={() => handleDeleteMinigroup(group.idCat, group.id)}
                       >
                         <FaTrash className="me-1" /> Eliminar
                       </button>
@@ -289,9 +410,14 @@ const GroupManager: React.FC<GroupManagerProps> = ({
           <GroupModal
             show={showModal}
             onHide={() => setShowModal(false)}
-            onSave={handleSave}
-            group={editingGroup}
+            onSave={handleSaveMinigroup}
+            group={editingGroup ? minigroupToGroup(editingGroup) : null}
+            mode={editingGroup?.id ? 'editManager' : 'newManager'}
             getAvailableStudents={getAvailableStudents}
+            availableCategories={categories}
+            selectedCategoryId={categoryId || undefined}
+            courseId={courseId}
+            minigroups={minigroups}
           />
 
           <GroupTypeModal
