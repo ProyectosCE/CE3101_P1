@@ -29,11 +29,11 @@ namespace CEDigital_api.Controllers.Sql
             return Ok(cursos);
         }
 
-        // GET: api/curso/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCursoById(int id)
+        // GET: api/curso/{id_curso}
+        [HttpGet("{id_curso}")]
+        public async Task<IActionResult> GetCursoById(string id_curso)
         {
-            var curso = await _context.Curso.FindAsync(id);
+            var curso = await _context.Curso.FindAsync(id_curso);
             if (curso == null)
                 return NotFound();
             return Ok(curso);
