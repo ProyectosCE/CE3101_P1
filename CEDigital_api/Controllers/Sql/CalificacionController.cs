@@ -127,5 +127,95 @@ namespace CEDigital_api.Controllers.Sql
 
             return Ok(resultado);
         }
+
+        // GET: api/Calificacion/estudiante
+        [HttpGet("estudiante")]
+        public async Task<IActionResult> GetNotasPorEstudiante(
+            [FromQuery] string codigo_curso,
+            [FromQuery] int id_grupo,
+            [FromQuery] string carnet)
+        {
+            if (string.IsNullOrEmpty(codigo_curso) || string.IsNullOrEmpty(carnet))
+                return BadRequest("Debe proporcionar 'codigo_curso', 'id_grupo' y 'carnet'.");
+
+            var sql = _sqlService.LoadSqlQuery("Controllers/Sql/Queries/notas_por_estudiante_grupo.sql");
+
+            var paramCurso = new SqlParameter("@codigo_curso", codigo_curso);
+            var paramGrupo = new SqlParameter("@id_grupo", id_grupo);
+            var paramCarnet = new SqlParameter("@carnet", carnet);
+
+            var notasRaw = new List<dynamic>();
+
+            using (var connection = _context.Database.GetDbConnection())
+            {
+                await connection.OpenAsync();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    command.CommandType = CommandType.Text;
+                    command.Parameters.Add(paramCurso);
+                    command.Parameters.Add(paramGrupo);
+                    command.Parameters.Add(paramCarnet);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            notasRaw.Add(new
+                            {
+                                carnet = reader["carnet"].ToString(),
+                                rubro = reader["rubro"].ToString(),
+                                porcentaje = Convert.ToDecimal(reader["porcentaje"]),
+                                evaluacion = reader["evaluacion"].ToString(),
+                                peso = Convert.ToDecimal(reader["peso"]),
+                                calificacion = Convert.ToDecimal(reader["calificacion"])
+                            });
+                        }
+                    }
+                }
+            }
+
+            var estudiante = await _estudianteService.GetByCarnetAsync(carnet);
+
+            var rubros = notasRaw
+                .GroupBy(n => n.rubro)
+                .Select(rg =>
+                {
+                    var porcentajeRubro = rg.First().porcentaje;
+                    var evaluaciones = rg.Select(ev => new
+                    {
+                        evaluacion = ev.evaluacion,
+                        nota = ev.calificacion,
+                        porcentaje = ev.peso
+                    }).ToList();
+
+                    var promedioRubro = rg.Average(x => (decimal)x.calificacion);
+                    var notaPonderada = promedioRubro * (porcentajeRubro / 100);
+
+                    return new
+                    {
+                        rubro = rg.Key,
+                        porcentaje = porcentajeRubro,
+                        promedio = (decimal)Math.Round((double)promedioRubro, 2),
+                        nota_ponderada = (decimal)Math.Round((double)notaPonderada, 2),
+                        evaluaciones = evaluaciones
+                    };
+                }).ToList();
+
+            var totalPonderado = rubros.Sum(r => r.nota_ponderada);
+
+            var resultado = new
+            {
+                carnet = carnet,
+                nombre_estudiante = estudiante?.nombre_completo ?? "Desconocido",
+                calificaciones = rubros,
+                nota_total = Math.Round(totalPonderado, 2)
+            };
+
+            return Ok(resultado);
+        }
+
     }
+
 }
