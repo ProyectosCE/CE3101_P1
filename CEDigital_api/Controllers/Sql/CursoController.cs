@@ -26,11 +26,11 @@ namespace CEDigital_api.Controllers.Sql
             return Ok(cursos);
         }
 
-        // GET: api/curso/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCursoById(int id)
+        // GET: api/curso/{id_curso}
+        [HttpGet("{id_curso}")]
+        public async Task<IActionResult> GetCursoById(string id_curso)
         {
-            var curso = await _context.Curso.FindAsync(id);
+            var curso = await _context.Curso.FindAsync(id_curso);
             if (curso == null)
                 return NotFound();
             return Ok(curso);
@@ -132,7 +132,7 @@ namespace CEDigital_api.Controllers.Sql
                 {
                     while (await reader.ReadAsync())
                     {
-                        var anio = Convert.ToInt32(reader["año"]);
+                        var anio = Convert.ToInt32(reader["anio"]);
                         var periodo = reader["periodo"].ToString();
                         var new_periodo = "";
 
