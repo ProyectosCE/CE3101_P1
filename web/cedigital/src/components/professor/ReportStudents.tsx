@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { getStudentsByCourse } from '../../Functions/Professor/studentsApi'
 
 export interface Student {
   carnet: string
@@ -9,13 +10,26 @@ export interface Student {
   phone: string
 }
 
-const ReportStudents: React.FC = () => {
+interface ReportStudentsProps {
+  courseId: string
+}
+
+const ReportStudents: React.FC<ReportStudentsProps> = ({ courseId }) => {
   const [students, setStudents] = useState<Student[]>([])
   const tableRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // TODO: fetch('/api/students?course=...') y luego setStudents(data)
-  }, [])
+    const fetchStudents = async () => {
+      try {
+        const data = await getStudentsByCourse(courseId)
+        setStudents(data)
+      } catch (error) {
+        console.error('Error fetching students:', error)
+        setStudents([]) // Clear students on error
+      }
+    }
+    fetchStudents()
+  }, [courseId])
 
   const handleExportPdf = async () => {
     if (!tableRef.current) return
