@@ -1,0 +1,43 @@
+/* src/styles/components/login.css */
+.login-page {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(8px);
+  padding: 3rem;               /* Más espacio interior */
+  border-radius: 1.5rem;       /* Bordes un poco más redondeados */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  animation: fadeInDown 0.8s ease-out;
+  max-width: 500px;            /* Mayor ancho máximo */
+  width: 90%;
+}
+
+@keyframes fadeInDown {
+  from { transform: translateY(-50px); opacity: 0; }
+  to   { transform: translateY(   0); opacity: 1; }
+}
+
+.login-logo {
+  max-width: 250px;            /* Logo más grande */
+  width: auto;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+/* Inputs más altos y texto más grande */
+.login-card .form-control {
+  height: 3.2rem;
+  font-size: 1.1rem;
+}
+
+/* Botón más alto y con letra más grande */
+.login-card .btn {
+  padding: 0.75rem 0;
+  font-size: 1.1rem;
+}

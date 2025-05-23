@@ -1,0 +1,110 @@
+/* Contenedor principal */
+.admin-dashboard {
+  background: #ffffff;
+  min-height: 100vh;
+  padding: 2rem;
+  color: #000000;
+}
+
+/* HEADER: sección más compacta */
+.admin-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* logo centrado */
+  margin-bottom: 2rem;
+  background: linear-gradient(90deg, #FAFAFF 0%, #EFF4FF 100%);
+  padding: 1rem 0; /* reducción de padding vertical */
+  border-radius: 0.75rem;
+}
+
+/* TÍTULO “Administrador” esquina superior derecha */
+.admin-title {
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  font-size: 1rem;         /* ligeramente pequeño */
+  margin: 0;
+  color: #0000ff;          /* azul coherente */
+  text-transform: capitalize;
+}
+
+/* LOGO más pequeño para compensar */
+.admin-logo {
+  max-width: 140px;        /* reducción de tamaño */
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.2));
+}
+
+/* PESTAÑAS */
+.admin-tabs .nav-link {
+  color: #0000ff;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 1.1rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+.admin-tabs .nav-link:hover {
+  background-color: rgba(0, 0, 255, 0.1);
+}
+.admin-tabs .nav-link.active {
+  color: #0000ff;
+  border-bottom: 2px solid #0000ff;
+}
+
+/* CONTENIDO */
+.admin-content {
+  background: #FAFAFF;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  color: #000000;
+}
+/* Encabezados dentro */
+.admin-content h1,
+.admin-content h2,
+.admin-content h3,
+.admin-content h4,
+.admin-content h5,
+.admin-content h6 {
+  color: #000000;
+}
+
+/* BOTONES */
+.btn-primary {
+  background-color: #0000ff !important;
+  border-color: #0000ff !important;
+  color: #ffffff !important;
+}
+.btn-primary:hover {
+  background-color: #0000dd !important;
+  border-color: #0000dd !important;
+}
+.btn-secondary {
+  background-color: #5555ff !important;
+  border-color: #5555ff !important;
+  color: #ffffff !important;
+}
+
+/* TABLA */
+.admin-content .table thead th {
+  background-color: #ddddff !important;
+  color: #000000 !important;
+}
+.admin-content .table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: rgba(0,0,255,0.05) !important;
+}
+
+/* FORMULARIOS */
+.form-control,
+.form-select {
+  background-color: #ffffff !important;
+  border: 1px solid #0000ff !important;
+  color: #000000 !important;
+}
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0,0,255,0.25) !important;
+  border-color: #0000ff !important;
+}
