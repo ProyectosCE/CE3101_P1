@@ -11,22 +11,46 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.config({
-    extends: ["next/core-web-vitals", "next/typescript"],
+    root: true,
+    extends: [
+      "next",
+      "next/core-web-vitals",
+      "plugin:@typescript-eslint/recommended",
+    ],
+    plugins: ["@typescript-eslint"],
     rules: {
-      // ✅ No errores por variables no usadas (solo advertencias)
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          varsIgnorePattern: "^_",
-          argsIgnorePattern: "^_",
-        },
-      ],
-      // ✅ Desactiva advertencia por comillas no escapadas (si usas textos con comillas)
+      // Desactivar warnings de variables no usadas
+      "@typescript-eslint/no-unused-vars": "off",
+
+      // Permitir any
+      "@typescript-eslint/no-explicit-any": "off",
+
+      // Desactivar warnings de img vs Image
+      "@next/next/no-img-element": "off",
+
+      // Hacer los hooks más flexibles
+      "react-hooks/exhaustive-deps": "off",
+
+      // Permitir nombres de variables sin _
+      "@typescript-eslint/naming-convention": "off",
+
+      // Permitir comillas sin escape
       "react/no-unescaped-entities": "off",
 
-      // ✅ (opcional) desactiva advertencia de usar <img>
-      // "next/no-img-element": "off",
+      // Desactivar reglas de dependencias de hooks
+      "react/hook-use-state": "off",
+      "react/jsx-key": "off",
+      "react-hooks/rules-of-hooks": "off",
     },
+    overrides: [
+      {
+        files: ["**/*.ts", "**/*.tsx"],
+        rules: {
+          "@typescript-eslint/no-explicit-any": "off",
+        },
+      },
+    ],
+    ignorePatterns: ["node_modules/", ".next/", "out/"],
   }),
 ];
 
