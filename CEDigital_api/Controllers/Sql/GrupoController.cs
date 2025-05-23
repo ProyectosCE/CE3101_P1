@@ -134,8 +134,5 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
-
-        // POST : api/grupos/upload-excel
-        // Falta
     }
 }

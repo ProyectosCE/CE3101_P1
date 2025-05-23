@@ -50,14 +50,17 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCarreraById), new { id = carrera.codigo_carrera }, carrera);
         }
 
-        // PATCH: api/carreras
-        [HttpPatch]
-        public async Task<IActionResult> UpdateCarrera([FromBody] Carrera updatedCarrera)
+        // PATCH: api/carreras/{codigo_carrera}
+        [HttpPatch("{codigo_carrera}")]
+        public async Task<IActionResult> UpdateCarrera(string codigo_carrera, [FromBody] Carrera updatedCarrera)
         {
-            if (updatedCarrera == null || string.IsNullOrWhiteSpace(updatedCarrera.codigo_carrera))
-                return BadRequest("El cuerpo de la solicitud debe incluir un código de carrera válido.");
+            if (updatedCarrera == null)
+                return BadRequest("El cuerpo de la solicitud no puede ser vacío.");
 
-            var existingCarrera = await _context.Carrera.FindAsync(updatedCarrera.codigo_carrera);
+            if (string.IsNullOrWhiteSpace(codigo_carrera))
+                return BadRequest("Debe proveer un código de carrera válido en la URL.");
+
+            var existingCarrera = await _context.Carrera.FindAsync(codigo_carrera);
             if (existingCarrera == null)
                 return NotFound("Carrera no encontrada.");
 
@@ -67,6 +70,7 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
 
 
         // PATCH: api/carreras/{codigo_carrera}/toggle

@@ -51,18 +51,24 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetSemestreById), new { id = semestre.id_semestre }, semestre);
         }
 
-        // PATCH: api/semestres
+        // PATCH: api/semestres/{id_semestre}
         // Actualizar un semestre
-        [HttpPatch]
-        public async Task<IActionResult> UpdateSemestre([FromBody] Semestre semestre)
+        [HttpPatch("{id_semestre}")]
+        public async Task<IActionResult> UpdateSemestre(int id_semestre, [FromBody] Semestre semestre)
         {
             if (semestre == null)
                 return BadRequest("El cuerpo de la solicitud no puede ser null.");
 
-            // Validar ID
-            var existingSemestre = await _context.Semestre.FindAsync(semestre.id_semestre);
+            if (id_semestre <= 0)
+                return BadRequest("Debe proveer un id_semestre válido en la URL.");
+
+            var existingSemestre = await _context.Semestre.FindAsync(id_semestre);
             if (existingSemestre == null)
                 return NotFound("Semestre no encontrado.");
+
+            // validar que el id_semestre del cuerpo coincida con el de la URL
+            if (semestre.id_semestre != 0 && semestre.id_semestre != id_semestre)
+                return BadRequest("El id_semestre en la URL no coincide con el del cuerpo.");
 
             // Validar el formato del periodo
             if (semestre.periodo != "1" && semestre.periodo != "2" && semestre.periodo != "V")
@@ -75,6 +81,7 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
 
 
         // PATCH: api/semestres/{id}/toggle

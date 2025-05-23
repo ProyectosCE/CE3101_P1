@@ -52,24 +52,31 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCursoById), new { id = curso.codigo_curso }, curso);
         }
 
-        // PATCH: api/curso
-        [HttpPatch]
-        public async Task<IActionResult> UpdateCurso([FromBody] Curso curso)
+        // PATCH: api/curso/{id_curso}
+        [HttpPatch("{id_curso}")]
+        public async Task<IActionResult> UpdateCurso(string id_curso, [FromBody] Curso curso)
         {
             if (curso == null)
                 return BadRequest("El cuerpo de la solicitud no puede ser null.");
 
-            var existingCurso = await _context.Curso.FindAsync(curso.codigo_curso);
+            if (string.IsNullOrWhiteSpace(id_curso))
+                return BadRequest("Debe proveer un id_curso válido en la URL.");
+
+            var existingCurso = await _context.Curso.FindAsync(id_curso);
             if (existingCurso == null)
                 return NotFound("Curso no encontrado.");
+
+            if (!string.IsNullOrWhiteSpace(curso.codigo_curso) && curso.codigo_curso != id_curso)
+                return BadRequest("El código del curso en la URL no coincide con el del cuerpo.");
 
             // Actualizar campos permitidos
             existingCurso.nombre = curso.nombre;
             existingCurso.creditos = curso.creditos;
 
-        await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
             return NoContent();
         }
+
 
 
         // PATCH: api/curso/{codigo_curso}/toggle
