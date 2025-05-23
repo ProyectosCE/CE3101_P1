@@ -1,15 +1,14 @@
 import React from 'react'
 import { Modal } from 'react-bootstrap'
-import { FaPlus } from 'react-icons/fa'
 import GroupManager from '../GroupManager'
-import type { Group } from '@/types/groups'
+import type { Minigroup } from '@/Functions/Professor/groupManagerApi'
 
 interface GroupsViewModalProps {
   show: boolean
   onHide: () => void
   groupTypeId: string
   groupTypeName: string
-  onSave?: (groups: Group[]) => void
+  onSave?: (groups: Minigroup[]) => void
 }
 
 const GroupsViewModal: React.FC<GroupsViewModalProps> = ({
@@ -28,8 +27,8 @@ const GroupsViewModal: React.FC<GroupsViewModalProps> = ({
         <GroupManager
           standalone={false}
           singleCategory={true}
-          activityId={groupTypeId}
-          activityName={groupTypeName}
+          categoryId={groupTypeId}
+          categoryName={groupTypeName}
           onSave={onSave}
         />
       </Modal.Body>

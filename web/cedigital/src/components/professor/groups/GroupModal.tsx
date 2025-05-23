@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Modal } from 'react-bootstrap'
 import { FaSearch, FaTimes } from 'react-icons/fa'
-import { v4 as uuidv4 } from 'uuid'
 import type { Student, GroupActivity, Group } from '@/types/groups'
+import type { Category } from '@/Functions/Professor/groupManagerApi'
 import { useGroupsStore } from '@/stores/groupsStore'
 import { useRelationshipStore } from '@/stores/relationshipsStore'
+import { v4 as uuidv4 } from 'uuid'
 
 interface GroupModalProps {
   show: boolean
@@ -13,6 +14,8 @@ interface GroupModalProps {
   group: Group | null
   getAvailableStudents: (activityId: string | null, excludeGroupId?: string) => Student[]
   mode: 'newManager' | 'editManager' | 'newEvaluationStatic' | 'editEvaluationStatic'
+  availableCategories: Category[]
+  selectedCategoryId?: string
 }
 
 const GroupModal: React.FC<GroupModalProps> = ({
@@ -21,7 +24,9 @@ const GroupModal: React.FC<GroupModalProps> = ({
   onSave,
   group,
   getAvailableStudents,
-  mode
+  mode,
+  availableCategories,
+  selectedCategoryId
 }) => {
   const { groupTypes } = useGroupsStore()
   const relationships = useRelationshipStore()
@@ -35,6 +40,24 @@ const GroupModal: React.FC<GroupModalProps> = ({
 
   const [search, setSearch] = useState('')
   const [availableStudents, setAvailableStudents] = useState<Student[]>([])
+
+  useEffect(() => {
+    if (show) {
+      if (group) {
+        setForm({
+          ...group,
+          activityId: group.activityId || selectedCategoryId || ''
+        })
+      } else {
+        setForm({
+          id: '',
+          name: '',
+          activityId: selectedCategoryId || '',
+          members: []
+        })
+      }
+    }
+  }, [show, group, selectedCategoryId])
 
   useEffect(() => {
     if (show) {
@@ -152,25 +175,22 @@ const GroupModal: React.FC<GroupModalProps> = ({
             />
           </div>
 
-          {/* Type selector - show and enable based on mode */}
-          {!mode.endsWith('Static') && (
+          {/* Category selector - show only if not in single category mode */}
+          {!selectedCategoryId && (
             <div className="col-12">
-              <label className="form-label">Tipo de Grupo</label>
+              <label className="form-label">Categoría</label>
               <select
                 className="form-select"
                 value={form.activityId || ''}
-                onChange={e => handleTypeChange(e.target.value)}
-                disabled={mode.startsWith('edit')}
+                onChange={e => setForm(prev => ({ ...prev, activityId: e.target.value }))}
+                required
               >
-                <option value="">Seleccionar tipo...</option>
-                <option value="general">Grupo General</option>
-                {groupTypes
-                  .filter(t => t.id !== 'general')
-                  .map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
+                <option value="">Seleccionar categoría...</option>
+                {availableCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nombre}
+                  </option>
+                ))}
               </select>
             </div>
           )}
