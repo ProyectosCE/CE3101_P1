@@ -65,6 +65,32 @@ namespace CEDigital_api.Data.Mongo
             await _estudiantes.ReplaceOneAsync(e => e.carnet == carnet, estudianteActualizado);
         }
 
+        // Actualizar un estudainte por ID
+        public async Task UpdateByIdAsync(string id, Estudiante estudianteActualizado)
+        {
+            if (!string.IsNullOrEmpty(estudianteActualizado.password))
+            {
+                estudianteActualizado.password = HashPassword(estudianteActualizado.password);
+            }
+            await _estudiantes.ReplaceOneAsync(e => e.Id == id, estudianteActualizado);
+        }
+
+        // Actualizar el estado de un estudiante
+        public async Task UpdateEstadoAsync(string id, string nuevoEstado)
+        {
+            var filter = Builders<Estudiante>.Filter.Eq(e => e.Id, id);
+            var update = Builders<Estudiante>.Update.Set(e => e.estado, nuevoEstado);
+            await _estudiantes.UpdateOneAsync(filter, update);
+        }
+
+        // Actualizar admin de un estudiante
+        public async Task UpdateAdminAsync(string id, bool isAdmin)
+        {
+            var filter = Builders<Estudiante>.Filter.Eq(e => e.Id, id);
+            var update = Builders<Estudiante>.Update.Set(e => e.IsAdmin, isAdmin);
+            await _estudiantes.UpdateOneAsync(filter, update);
+        }
+
         // Eliminar un estudiante
         public async Task DeleteAsync(string carnet)
         {
@@ -121,6 +147,12 @@ namespace CEDigital_api.Data.Mongo
         public async Task<List<Estudiante>> GetByCarnetsAsync(List<string> carnets)
         {
             return await _estudiantes.Find(e => carnets.Contains(e.carnet)).ToListAsync();
+        }
+
+        // Obtener un estudainte por ID
+        public async Task<Estudiante> GetByIdAsync(string id)
+        {
+            return await _estudiantes.Find(e => e.Id == id).FirstOrDefaultAsync();
         }
 
     }

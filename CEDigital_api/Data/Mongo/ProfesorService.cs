@@ -66,6 +66,33 @@ namespace CEDigital_api.Data.Mongo
             await _profesores.ReplaceOneAsync(p => p.cedula == cedula, profesorActualizado);
         }
 
+        // Actualizar un profesor por ID
+        public async Task UpdateByIdAsync(string id, Profesor profesorActualizado)
+        {
+            if (!string.IsNullOrEmpty(profesorActualizado.password))
+            {
+                profesorActualizado.password = HashPassword(profesorActualizado.password);
+            }
+            await _profesores.ReplaceOneAsync(p => p.Id == id, profesorActualizado);
+        }
+
+        // Actualizar el estado de un profesor
+        public async Task UpdateEstadoAsync(string id, string nuevoEstado)
+        {
+            var filter = Builders<Profesor>.Filter.Eq(p => p.Id, id);
+            var update = Builders<Profesor>.Update.Set(p => p.estado, nuevoEstado);
+            await _profesores.UpdateOneAsync(filter, update);
+        }
+
+        // Actualizar el admin de un profesor
+        public async Task UpdateAdminAsync(string id, bool nuevoAdmin)
+        {
+            var filter = Builders<Profesor>.Filter.Eq(p => p.Id, id);
+            var update = Builders<Profesor>.Update.Set(p => p.IsAdmin, nuevoAdmin);
+            await _profesores.UpdateOneAsync(filter, update);
+        }
+
+
         // Eliminar un profesor
         public async Task DeleteAsync(string cedula)
         {
@@ -98,6 +125,12 @@ namespace CEDigital_api.Data.Mongo
         {
             var profesor = await GetByCedulaAsync(cedula);
             return profesor != null;
+        }
+
+        // Obtener profesor por ID
+        public async Task<Profesor> GetByIdAsync(string id)
+        {
+            return await _profesores.Find(p => p.Id == id).FirstOrDefaultAsync();
         }
     }
 }

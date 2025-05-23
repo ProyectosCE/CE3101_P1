@@ -51,22 +51,31 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetSemestreById), new { id = semestre.id_semestre }, semestre);
         }
 
-        // PATCH: api/semestres/{id}
-        // Actualizar un semestre por query
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateSemestre(int id, [FromBody] Semestre semestre)
+        // PATCH: api/semestres
+        // Actualizar un semestre
+        [HttpPatch]
+        public async Task<IActionResult> UpdateSemestre([FromBody] Semestre semestre)
         {
-            if (id != semestre.id_semestre)
-                return BadRequest("El ID del semestre no coincide.");
             if (semestre == null)
-                return BadRequest("Semestre no puede ser null.");
-            // Verifica el formato del periodo 1, 2 o V
+                return BadRequest("El cuerpo de la solicitud no puede ser null.");
+
+            // Validar ID
+            var existingSemestre = await _context.Semestre.FindAsync(semestre.id_semestre);
+            if (existingSemestre == null)
+                return NotFound("Semestre no encontrado.");
+
+            // Validar el formato del periodo
             if (semestre.periodo != "1" && semestre.periodo != "2" && semestre.periodo != "V")
                 return BadRequest("El periodo debe ser 1, 2 o V.");
-            _context.Entry(semestre).State = EntityState.Modified;
+
+            // Actualizar los campos permitidos
+            existingSemestre.anio = semestre.anio;
+            existingSemestre.periodo = semestre.periodo;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
 
         // PATCH: api/semestres/{id}/toggle
         // Habilitar o deshabilitar un semestre

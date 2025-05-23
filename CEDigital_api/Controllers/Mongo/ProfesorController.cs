@@ -48,32 +48,52 @@ namespace CEDigital_api.Controllers.Mongo
             return CreatedAtAction(nameof(GetAll), new { carnet = profesor.cedula }, profesor);
         }
 
-        // PATCH: api/profesores/{cedula}
-        // Actualizar un profesor por cédula
-        [HttpPatch("{cedula}")]
-        public async Task<ActionResult> Update(string cedula, [FromBody] Profesor profesor)
+        // PATCH: api/profesores/{id}
+        // Actualizar un profesor por Id
+        [HttpPatch("{id}")]
+        public async Task<ActionResult> Update(string id, [FromBody] Profesor profesor)
         {
-            if (cedula != profesor.cedula)
-                return BadRequest("La cédula no coincide con el ID del profesor.");
-            await _profesorService.UpdateAsync(cedula, profesor);
+            if (profesor == null)
+                return BadRequest("El cuerpo de la solicitud no puede ser null.");
+
+            if (id != profesor.Id)  
+                return BadRequest("El Id no coincide.");
+
+            var existente = await _profesorService.GetByIdAsync(id);
+            if (existente == null)
+                return NotFound();
+
+            await _profesorService.UpdateByIdAsync(id, profesor);
+
             return NoContent();
         }
 
-        // PATCH : api/profesores/{cedula}/toggle
+
+        // PATCH : api/profesores/{id}/toggle
         // Cambiar el estado de un profesor
-        [HttpPatch("{cedula}/toggle")]
-        public async Task<ActionResult> Toggle(string cedula)
+        [HttpPatch("{id}/toggle")]
+        public async Task<ActionResult> Toggle(string id)
         {
-            var profesor = await _profesorService.GetByCedulaAsync(cedula);
+            var profesor = await _profesorService.GetByIdAsync(id);
             if (profesor == null)
                 return NotFound("Profesor no encontrado.");
             profesor.estado = profesor.estado == "activo" ? "inactivo" : "activo";
-            await _profesorService.UpdateAsync(cedula, profesor);
+            await _profesorService.UpdateByIdAsync(id, profesor);
             return NoContent();
         }
 
-        // POST: api/profesores/upload-excel
-        // Falta
+        // PATCH : api/profesores/{id}/admin/toggle
+        [HttpPatch("{id}/admin/toggle")]
+        public async Task<ActionResult> ToggleAdmin(string id)
+        {
+            var profesor = await _profesorService.GetByIdAsync(id);
+            if (profesor == null)
+                return NotFound("Profesor no encontrado.");
+            profesor.IsAdmin = !profesor.IsAdmin;
+            await _profesorService.UpdateAdminAsync(id, profesor.IsAdmin);
+            return NoContent();
+        }
+
 
         // Eliminar un profesor por cédula
         [HttpDelete("{cedula}")]

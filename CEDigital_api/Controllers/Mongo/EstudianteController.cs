@@ -48,34 +48,52 @@ namespace CEDigital_api.Controllers.Mongo
         }
 
 
-        // PATCH: api/estudiantes/{carnet}
-        // Actualizar un estudiante por carnet
-        [HttpPatch("{carnet}")]
-        public async Task<ActionResult> Update(string carnet, [FromBody] Estudiante estudiante)
+        // PATCH: api/estudiantes/{id}
+        // Actualizar un estudiante por Id (ObjectId)
+        [HttpPatch("{id}")]
+        public async Task<ActionResult> Update(string id, [FromBody] Estudiante estudiante)
         {
-            if (carnet != estudiante.carnet)
-                return BadRequest("El carnet no coincide.");
-            var existente = await _estudianteService.GetByCarnetAsync(carnet);
-            if (existente == null) return NotFound();
-            await _estudianteService.UpdateAsync(carnet, estudiante);
+            if (estudiante == null)
+                return BadRequest("El cuerpo de la solicitud no puede ser null.");
+
+            if (id != estudiante.Id)
+                return BadRequest("El Id no coincide.");
+
+            var existente = await _estudianteService.GetByIdAsync(id);
+            if (existente == null)
+                return NotFound();
+
+            await _estudianteService.UpdateByIdAsync(id, estudiante);
+
             return NoContent();
         }
 
-        // PATCH: api/estudiantes/{carnet}/toggle
-        // Cambiar el estado de un estudiante por carnet
-        [HttpPatch("{carnet}/toggle")]
-        public async Task<ActionResult> Toggle(string carnet)
+
+        // PATCH: api/estudiantes/{id}/toggle
+        // Cambiar el estado de un estudiante por id
+        [HttpPatch("{id}/toggle")]
+        public async Task<ActionResult> Toggle(string id)
         {
-            var estudiante = await _estudianteService.GetByCedulaAsync(carnet);
+            var estudiante = await _estudianteService.GetByIdAsync(id);
             if (estudiante == null)
                 return NotFound("Estudiante no encontrado.");
             estudiante.estado = estudiante.estado == "activo" ? "inactivo" : "activo";
-            await _estudianteService.UpdateAsync(carnet, estudiante);
+            await _estudianteService.UpdateByIdAsync(id, estudiante);
             return NoContent();
         }
 
-        // POST: api/estudiantes/upload-excel
-        // Falta
+        // PATCH : api/estudiante/{id}/admin/toggle
+        // Cambiar el estado de admin de un estudiante por id
+        [HttpPatch("{id}/admin/toggle")]
+        public async Task<ActionResult> ToggleAdmin(string id)
+        {
+            var estudiante = await _estudianteService.GetByIdAsync(id);
+            if (estudiante == null)
+                return NotFound("Estudiante no encontrado.");
+            estudiante.IsAdmin = !estudiante.IsAdmin;
+            await _estudianteService.UpdateAdminAsync(id, estudiante.IsAdmin);
+            return NoContent();
+        }
 
         // Eliminar un estudiante por carnet
         [HttpDelete("{carnet}")]
