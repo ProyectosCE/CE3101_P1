@@ -6,6 +6,7 @@ import { useRelationshipStore } from '@/stores/relationshipsStore'
 import type { Assignment, Rubric } from '@/types/evaluation'
 import type { Group, GroupActivity } from '@/types/groups'
 import EvaluationGroupsModal from './EvaluationGroupsModal'
+import { evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
 
 interface GroupCreationResult {
   exists: boolean
@@ -77,16 +78,43 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     }
   }, [show, assignment])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Save the assignment first
-    onSave(form)
+    try {
+      // Convert Assignment to API format
+      const apiAssignment = {
+        idRubro: form.rubricId,
+        nombreRubro: form.title,
+        porcentaje: form.weight,
+        descripcion: form.description,
+        fechaEntrega: form.dueDate,
+        horaEntrega: form.dueTime,
+        trabajoGrupal: form.isGroupWork,
+        idDocumentoInstrucciones: ''
+      }
 
-    // Si es trabajo grupal y tiene una categoría asignada
-    if (form.isGroupWork && form.groupTypeId) {
-      // Solo vinculamos la categoría con la evaluación
-      relationships.linkCategoryToAssignment(form.groupTypeId, form.id)
+      if (form.id) {
+        await evaluacionesApi.updateEvaluacion(form.id, apiAssignment)
+      } else {
+        await evaluacionesApi.createEvaluacion(apiAssignment)
+      }
+
+      // Handle file upload if present
+      if (form.instructionsFile) {
+        await evaluacionesApi.uploadInstrucciones(form.id, form.instructionsFile)
+      }
+
+      // Si es trabajo grupal y tiene una categoría asignada
+      if (form.isGroupWork && form.groupTypeId) {
+        // Solo vinculamos la categoría con la evaluación
+        relationships.linkCategoryToAssignment(form.groupTypeId, form.id)
+      }
+
+      onSave(form)
+    } catch (error) {
+      console.error('Error saving assignment:', error)
+      alert('Error al guardar la evaluación')
     }
   }
 

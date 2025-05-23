@@ -1,60 +1,94 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
-import { v4 as uuidv4 } from 'uuid'
 import RubricModal from './RubricModal'
-
-interface Rubric {
-  id: string
-  name: string
-  weight: number
-}
-
-const initialRubrics: Rubric[] = [
-  { id: uuidv4(), name: 'Quices', weight: 30 },
-  { id: uuidv4(), name: 'Exámenes', weight: 30 },
-  { id: uuidv4(), name: 'Proyectos', weight: 40 },
-]
+import { rubrosApi, type Rubric as ApiRubric } from '@/Functions/Professor/evaluationsApi'
+import type { Rubric as ComponentRubric } from '@/types/evaluation'
 
 const RubricList: React.FC = () => {
-  const [rubrics, setRubrics] = useState<Rubric[]>(initialRubrics)
+  const [rubrics, setRubrics] = useState<ApiRubric[]>([])
   const [showModal, setShowModal] = useState(false)
-  const [editingRubric, setEditingRubric] = useState<Rubric | null>(null)
+  const [editingRubric, setEditingRubric] = useState<ComponentRubric | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Load rubrics on mount
+  useEffect(() => {
+    loadRubrics()
+  }, [])
+
+  const loadRubrics = async () => {
+    setLoading(true)
+    try {
+      const { data } = await rubrosApi.getRubros()
+      setRubrics(data.rubros)
+    } catch (error) {
+      console.error('Error loading rubrics:', error)
+      alert('Error al cargar los rubros')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Transform API rubric to component rubric
+  const apiToComponentRubric = (apiRubric: ApiRubric): ComponentRubric => ({
+    id: apiRubric.id,
+    name: apiRubric.nombre,
+    weight: apiRubric.porcentaje
+  })
+
+  // Transform component rubric to API rubric
+  const componentToApiRubric = (compRubric: ComponentRubric): Omit<ApiRubric, 'id'> => ({
+    nombre: compRubric.name,
+    porcentaje: compRubric.weight
+  })
 
   const handleAdd = () => {
     setEditingRubric(null)
     setShowModal(true)
   }
 
-  const handleEdit = (rubric: Rubric) => {
-    setEditingRubric(rubric)
+  const handleEdit = (rubric: ApiRubric) => {
+    setEditingRubric(apiToComponentRubric(rubric))
     setShowModal(true)
   }
 
-  const handleSave = (rubric: Rubric) => {
-    const otherWeights = rubrics
-      .filter(r => r.id !== rubric.id)
-      .reduce((sum, r) => sum + r.weight, 0)
+  const handleSave = (rubric: ComponentRubric) => {
+    const apiRubric = componentToApiRubric(rubric)
     
-    if (otherWeights + rubric.weight > 100) {
-      alert('La suma de los porcentajes no puede exceder 100%')
-      return
-    }
-
     if (editingRubric) {
-      setRubrics(prev => prev.map(r => r.id === rubric.id ? rubric : r))
+      rubrosApi.updateRubro(rubric.id, apiRubric)
+        .then(() => loadRubrics())
+        .catch(error => {
+          console.error('Error updating rubric:', error)
+          alert('Error al actualizar el rubro')
+        })
     } else {
-      setRubrics(prev => [...prev, { ...rubric, id: uuidv4() }])
+      rubrosApi.createRubro(apiRubric)
+        .then(() => loadRubrics())
+        .catch(error => {
+          console.error('Error creating rubric:', error)
+          alert('Error al crear el rubro')
+        })
     }
     setShowModal(false)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar este rubro?')) {
-      setRubrics(prev => prev.filter(r => r.id !== id))
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este rubro?')) return
+    
+    try {
+      await rubrosApi.deleteRubro(id)
+      await loadRubrics() // Reload rubrics after delete
+    } catch (error) {
+      console.error('Error deleting rubric:', error)
+      alert('Error al eliminar el rubro')
     }
   }
 
-  const totalWeight = rubrics.reduce((sum, r) => sum + r.weight, 0)
+  const totalWeight = rubrics.reduce((sum, r) => sum + r.porcentaje, 0)
+
+  if (loading) {
+    return <div className="text-center">Cargando rubros...</div>
+  }
 
   return (
     <div className="rubric-list">
@@ -70,12 +104,12 @@ const RubricList: React.FC = () => {
           <div key={rubric.id} className="col-md-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">{rubric.name}</h5>
+                <h5 className="card-title">{rubric.nombre}</h5>
                 <p className="card-text">
                   <span className={`badge ${
                     totalWeight > 100 ? 'bg-danger' : 'bg-primary'
                   }`}>
-                    {rubric.weight}%
+                    {rubric.porcentaje}%
                   </span>
                 </p>
               </div>
