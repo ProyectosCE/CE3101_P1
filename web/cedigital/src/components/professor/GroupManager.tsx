@@ -3,15 +3,12 @@ import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import GroupModal from './groups/GroupModal'
 import GroupTypeModal from './groups/GroupTypeModal'
 import { categoryApi, minigroupApi } from '@/Functions/Professor/groupManagerApi'
+import { getAllStudentsByCourse } from '@/Functions/Professor/studentsApi'
 import type { Category, Minigroup} from '@/Functions/Professor/groupManagerApi'
 import type { Group, GroupActivity } from '@/types/groups'
+import type { Student as GroupStudent } from '@/types/groups'
 
 // Update Student interface to match API data
-interface Student {
-  carnet: string
-  nombre: string
-}
-
 interface StudentInfo {
   carnet: string
   nombre: string
@@ -24,6 +21,7 @@ interface GroupManagerProps {
   onSave?: (groups: Minigroup[]) => void
   standalone?: boolean
   singleCategory?: boolean
+  courseId: string;
 }
 
 // Update type conversion functions
@@ -63,7 +61,8 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   categoryName = '',
   onSave,
   standalone = true,
-  singleCategory = false
+  singleCategory = false,
+  courseId
 }) => {
   const [categories, setCategories] = useState<Category[]>([])
   const [minigroups, setMinigroups] = useState<Minigroup[]>([])
@@ -74,49 +73,43 @@ const GroupManager: React.FC<GroupManagerProps> = ({
   const [editingGroup, setEditingGroup] = useState<Minigroup | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
+  // Modified loadData function that can be reused
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const { data: categoriesData } = await categoryApi.getCategories()
+      setCategories(categoriesData.categorias)
+
+      if (categoryId) {
+        const { data: minigroupsData } = await minigroupApi.getMinigroupsByCategory(categoryId)
+        setMinigroups(minigroupsData.minigrupos)
+      } else {
+        const minigroupPromises = categoriesData.categorias.map(category =>
+          minigroupApi.getMinigroupsByCategory(category.id)
+        )
+        const minigroupResponses = await Promise.all(minigroupPromises)
+        const allMinigroups = minigroupResponses.flatMap(response => response.data.minigrupos)
+        // Remove potential duplicates by ID
+        const uniqueMinigroups = Array.from(
+          new Map(allMinigroups.map(group => [group.id, group])).values()
+        )
+        setMinigroups(uniqueMinigroups)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+    }
+    setLoading(false)
+  }
+
   // Load categories and minigroups
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const [categoriesRes, minigroupsRes] = await Promise.all([
-          categoryApi.getCategories(),
-          categoryId ? minigroupApi.getMinigroupsByCategory(categoryId) : null
-        ])
-
-        setCategories(categoriesRes.data.categorias)
-        if (minigroupsRes) {
-          setMinigroups(minigroupsRes.data.minigrupos)
-        }
-      } catch (error) {
-        console.error('Error loading data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadData()
   }, [categoryId])
 
-  // Modify loadMinigroupsForCategory to handle student info
-  const loadMinigroupsForCategory = async (categoryId: string) => {
-    try {
-      const { data } = await minigroupApi.getMinigroupsByCategory(categoryId)
-      setMinigroups(data.minigrupos)
-    } catch (error) {
-      console.error('Error loading minigroups:', error)
-    }
-  }
-
-  // Handle category click
+  // Remove loadMinigroupsForCategory since we load all data at once
   const handleCategoryClick = (categoryId: string) => {
-    if (expandedType === categoryId) {
-      setExpandedType(null);
-    } else {
-      setExpandedType(categoryId);
-      loadMinigroupsForCategory(categoryId);
-    }
-  };
+    setExpandedType(expandedType === categoryId ? null : categoryId)
+  }
 
   const handleAddCategory = async (category: Category) => {
     try {
@@ -191,14 +184,9 @@ const GroupManager: React.FC<GroupManagerProps> = ({
     }
   }
 
-  const getAvailableStudents = (activityId: string | null, excludeGroupId?: string) => {
-    // TODO: Implement this with real student data from API
-    return [{
-      carnet: '',
-      nombre: '',
-      apellido1: '',
-      apellido2: ''
-    }] // Return empty array with correct type
+  const getAvailableStudents = (activityId: string | null, excludeGroupId?: string): GroupStudent[] => {
+    // Just return empty array - actual filtering happens in GroupModal
+    return []
   }
 
   const handleDeleteMinigroup = async (categoryId: string, groupId: string) => {
@@ -212,15 +200,8 @@ const GroupManager: React.FC<GroupManagerProps> = ({
     }
   }
 
-  // Refresh categories after creation
-  const refreshCategories = async () => {
-    try {
-      const { data } = await categoryApi.getCategories()
-      setCategories(data.categorias)
-    } catch (error) {
-      console.error('Error refreshing categories:', error)
-    }
-  }
+  // Update refreshCategories to use loadData
+  const refreshCategories = () => loadData()
 
   // Update category type
   const handleAddType = async (groupType: GroupActivity) => {
@@ -363,8 +344,10 @@ const GroupManager: React.FC<GroupManagerProps> = ({
             group={editingGroup ? minigroupToGroup(editingGroup) : null}
             mode={editingGroup?.id ? 'editManager' : 'newManager'}
             getAvailableStudents={getAvailableStudents}
-            availableCategories={categories} // Pass existing categories
-            selectedCategoryId={categoryId || undefined} // Pass current category if any
+            availableCategories={categories}
+            selectedCategoryId={categoryId || undefined}
+            courseId={courseId}
+            minigroups={minigroups}
           />
 
           <GroupTypeModal
@@ -431,8 +414,10 @@ const GroupManager: React.FC<GroupManagerProps> = ({
             group={editingGroup ? minigroupToGroup(editingGroup) : null}
             mode={editingGroup?.id ? 'editManager' : 'newManager'}
             getAvailableStudents={getAvailableStudents}
-            availableCategories={categories} // Pass existing categories
-            selectedCategoryId={categoryId || undefined} // Pass current category if any
+            availableCategories={categories}
+            selectedCategoryId={categoryId || undefined}
+            courseId={courseId}
+            minigroups={minigroups}
           />
 
           <GroupTypeModal
