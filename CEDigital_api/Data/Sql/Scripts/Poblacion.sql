@@ -20,7 +20,7 @@ INSERT INTO Curso (codigo_curso, nombre, creditos, codigo_carrera) VALUES
 ('QU1106', 'Química básica i', 3, 'QU');
 
 -- Población para Semestre
-INSERT INTO Semestre (año, periodo) VALUES
+INSERT INTO Semestre (anio, periodo) VALUES
 (2025, '1');
 
 -- Población para Grupo

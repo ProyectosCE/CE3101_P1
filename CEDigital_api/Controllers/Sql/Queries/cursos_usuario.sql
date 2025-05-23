@@ -2,7 +2,7 @@ SELECT DISTINCT
     C.codigo_curso      AS codigoCurso,
     C.nombre            AS nombreCurso,
     G.numero_grupo      AS numGrupo,
-    S.año               AS año,
+    S.anio               AS anio,
     S.periodo           AS periodo
 FROM Curso C
 JOIN Grupo G ON C.codigo_curso = G.codigo_curso
