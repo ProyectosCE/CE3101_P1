@@ -172,7 +172,7 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
         </div>
       </div>
 
-      {/* Importar Excel */}
+      {/* Temporarily disabled Excel import
       <div className="mb-4">
         <h5>Importar desde Excel</h5>
         <ExcelUploader onFileSelect={handleFileSelect} />
@@ -185,6 +185,7 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
           </div>
         )}
       </div>
+      */}
 
       {/* Tabla Profesores */}
       <table className="table table-striped">

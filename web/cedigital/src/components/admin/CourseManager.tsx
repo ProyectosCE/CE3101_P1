@@ -163,7 +163,7 @@ const CourseManager: React.FC = () => {
     <div>
       <h2 className="mb-4">Gestión de Cursos</h2>
 
-      {/* Importar desde Excel */}
+      {/* Temporarily disabled Excel import
       <div className="mb-4">
         <h5>Importar desde Excel</h5>
         <ExcelUploader onFileSelect={handleFileSelect} />
@@ -176,7 +176,7 @@ const CourseManager: React.FC = () => {
           </div>
         )}
       </div>
-
+      */}
       <div className="mb-4">
         <input
           type="text"

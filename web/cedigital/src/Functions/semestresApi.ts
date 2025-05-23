@@ -20,4 +20,12 @@ export function getSemestres() {
     return apiRequest('get', '/semestres');
 }
 
+export function uploadSemestresExcel(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest('post', '/semestres/upload-excel', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+}
+
 // Puedes agregar create, update, toggle, etc. aquí si el backend los soporta.

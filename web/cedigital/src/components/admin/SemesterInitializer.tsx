@@ -1,6 +1,7 @@
 // src/components/admin/SemesterInitializer.tsx
 import React, { useState } from 'react'
-import { getSemestres } from '@/Functions/semestresApi'
+import ExcelUploader from './ExcelUploader'
+import { getSemestres, uploadSemestresExcel } from '@/Functions/semestresApi'
 
 interface Semester {
   id: string
@@ -13,6 +14,7 @@ const SemesterInitializer: React.FC = () => {
   const [year, setYear] = useState<number | ''>('')
   const [period, setPeriod] = useState<'1' | '2' | 'V'>('1')
   const [semesters, setSemesters] = useState<Semester[]>([])
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   React.useEffect(() => {
     getSemestres().then((data: any) => {
@@ -55,9 +57,53 @@ const SemesterInitializer: React.FC = () => {
     setSemesters(semesters.filter(sem => sem.id !== id))
   }
 
+  const handleFileSelect = (file: File) => setSelectedFile(file)
+
+  const confirmImport = async () => {
+    if (!selectedFile) {
+      alert('No hay archivo seleccionado.')
+      return
+    }
+    try {
+      const res = await uploadSemestresExcel(selectedFile)
+      alert(
+        `Importación completada.\nImportados: ${res.importedCount ?? '-'}\nErrores: ${res.errors?.length || 0}`
+      )
+      setSelectedFile(null)
+      // Recargar semestres
+      getSemestres().then((data: any) => {
+        const arr = Array.isArray(data) ? data : data.semestres ?? []
+        setSemesters(
+          arr.map((s: any) => ({
+            id: s.id,
+            year: Number(s.anno),
+            period: s.periodo,
+            active: s.estado === 'Activo'
+          }))
+        )
+      })
+    } catch (err) {
+      alert('Error al subir el archivo.')
+    }
+  }
+
   return (
     <div>
       <h2 className="mb-4">Gestión de Semestres</h2>
+
+      {/* Importar Excel */}
+      <div className="mb-4">
+        <h5>Importar Semestres desde Excel</h5>
+        <ExcelUploader onFileSelect={handleFileSelect} />
+        {selectedFile && (
+          <div className="mt-2">
+            <span>Archivo listo: {selectedFile.name}</span>{' '}
+            <button className="btn btn-success btn-sm ms-2" onClick={confirmImport}>
+              Confirmar importación
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Año y periodo */}
       <div className="row mb-4">

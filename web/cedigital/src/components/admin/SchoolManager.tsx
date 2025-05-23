@@ -171,7 +171,8 @@ const SchoolManager: React.FC = () => {
   return (
     <div>
       <h2 className="mb-4">Gestión de Escuelas</h2>
-
+      
+      {/* Crear escuela form */}
       <div className="mb-4">
         <button 
           className={`btn ${showForm ? 'btn-danger' : 'btn-secondary'}`} 
@@ -214,7 +215,7 @@ const SchoolManager: React.FC = () => {
         </div>
       )}
 
-      {/* Importar desde Excel */}
+      {/* Temporarily disabled Excel import
       <div className="mb-4">
         <h5>Importar desde Excel</h5>
         <ExcelUploader onFileSelect={handleFileSelect} />
@@ -227,7 +228,7 @@ const SchoolManager: React.FC = () => {
           </div>
         )}
       </div>
-
+      */}
       <h3 className="mt-5 mb-3">Escuelas Registradas</h3>
       <table className="table">
         <thead>
