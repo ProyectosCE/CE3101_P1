@@ -1,30 +1,44 @@
 import React, { useState, useEffect } from 'react'
-import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa'
-import { v4 as uuidv4 } from 'uuid'
+import { FaPlus, FaEdit, FaTrash, FaTimes, FaEye } from 'react-icons/fa'
+import { getNews, createNews, updateNews, deleteNews } from '@/Functions/Professor/newsAPI'
 
 interface NewsItem {
   id: string
   title: string
   message: string
-  date: string // YYYY-MM-DD
+  date: string
   author: string
-  course: string
+  authorId: string
 }
 
 const NewsEditor: React.FC = () => {
   const [newsList, setNewsList] = useState<NewsItem[]>([])
-  const [courses, setCourses] = useState<string[]>([])
   const [modalOpen, setModalOpen] = useState(false)
+  const [viewing, setViewing] = useState<NewsItem | null>(null)
   const [editing, setEditing] = useState<NewsItem | null>(null)
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [date, setDate] = useState('')
   const [author, setAuthor] = useState('')
-  const [course, setCourse] = useState('')
 
   useEffect(() => {
-    // TODO: fetch newsList desde backend y setNewsList(...)
-    // TODO: fetch lista de cursos y setCourses(...)
+    const fetchNews = async () => {
+      try {
+        const newsData = await getNews();
+        const formattedNews = newsData.map(n => ({
+          id: n.id,
+          title: n.titulo,
+          message: n.cuerpo,
+          date: n.fecha,
+          author: n.autor.nombre,
+          authorId: n.autor.id,
+        }));
+        setNewsList(formattedNews);
+      } catch (error) {
+        console.error('Error fetching news:', error);
+      }
+    };
+    fetchNews();
   }, [])
 
   const openNew = () => {
@@ -33,7 +47,6 @@ const NewsEditor: React.FC = () => {
     setMessage('')
     setDate(new Date().toISOString().slice(0,10))
     setAuthor('') // o tu propio nombre
-    setCourse(courses[0] || '')
     setModalOpen(true)
   }
 
@@ -43,43 +56,64 @@ const NewsEditor: React.FC = () => {
     setMessage(item.message)
     setDate(item.date)
     setAuthor(item.author)
-    setCourse(item.course)
     setModalOpen(true)
   }
 
-  const handleSave = () => {
+  const openView = (item: NewsItem) => {
+    setViewing(item)
+  }
+
+  const handleSave = async () => {
     if (!title.trim() || !message.trim()) {
       alert('Título y mensaje son obligatorios.')
       return
     }
-    if (editing) {
-      // TODO: PUT /api/news/{editing.id}
-      setNewsList(nl =>
-        nl.map(n =>
-          n.id === editing.id
-            ? { ...n, title, message, date, author, course }
-            : n
-        )
-      )
-    } else {
-      // TODO: POST /api/news
-      const newItem: NewsItem = {
-        id: uuidv4(),
-        title,
-        message,
-        date,
-        author,
-        course,
+
+    try {
+      if (editing) {
+        await updateNews(editing.id, {
+          titulo: title,
+          cuerpo: message,
+          fecha: date,
+          autorId: author,
+          cursoId: '1' // TODO: Get actual course ID
+        });
+      } else {
+        await createNews({
+          titulo: title,
+          cuerpo: message,
+          fecha: date,
+          autorId: author,
+          cursoId: '1' // TODO: Get actual course ID
+        });
       }
-      setNewsList(nl => [newItem, ...nl])
+      // Refresh news list
+      const newsData = await getNews();
+      const formattedNews = newsData.map(n => ({
+        id: n.id,
+        title: n.titulo,
+        message: n.cuerpo,
+        date: n.fecha,
+        author: n.autor.nombre,
+        authorId: n.autor.id,
+      }));
+      setNewsList(formattedNews);
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error saving news:', error);
+      alert('Error al guardar la noticia')
     }
-    setModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta noticia?')) return
-    // TODO: DELETE /api/news/{id}
-    setNewsList(nl => nl.filter(n => n.id !== id))
+    try {
+      await deleteNews(id);
+      setNewsList(nl => nl.filter(n => n.id !== id))
+    } catch (error) {
+      console.error('Error deleting news:', error);
+      alert('Error al eliminar la noticia')
+    }
   }
 
   return (
@@ -95,7 +129,6 @@ const NewsEditor: React.FC = () => {
             <th>Título</th>
             <th>Fecha</th>
             <th>Autor</th>
-            <th>Curso</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -105,8 +138,13 @@ const NewsEditor: React.FC = () => {
               <td>{n.title}</td>
               <td>{n.date}</td>
               <td>{n.author}</td>
-              <td>{n.course}</td>
               <td>
+                <button
+                  className="btn btn-sm btn-info me-2"
+                  onClick={() => openView(n)}
+                >
+                  <FaEye />
+                </button>
                 <button
                   className="btn btn-sm btn-secondary me-2"
                   onClick={() => openEdit(n)}
@@ -124,7 +162,7 @@ const NewsEditor: React.FC = () => {
           ))}
           {newsList.length === 0 && (
             <tr>
-              <td colSpan={5} className="text-center text-muted">
+              <td colSpan={4} className="text-center text-muted">
                 No hay noticias
               </td>
             </tr>
@@ -205,21 +243,6 @@ const NewsEditor: React.FC = () => {
                   onChange={e => setAuthor(e.target.value)}
                 />
               </div>
-              <div className="col-md-4">
-                <label className="form-label">Curso</label>
-                <select
-                  className="form-select"
-                  value={course}
-                  onChange={e => setCourse(e.target.value)}
-                >
-                  <option value="">Selecciona un curso</option>
-                  {courses.map(c => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             <div className="text-end">
@@ -231,6 +254,59 @@ const NewsEditor: React.FC = () => {
               </button>
               <button className="btn btn-primary" onClick={handleSave}>
                 Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewing && (
+        <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div style={{
+              background: '#fff',
+              borderRadius: 8,
+              width: '90%',
+              maxWidth: 600,
+              padding: '1.5rem',
+              position: 'relative',
+            }}
+          >
+            <button
+              onClick={() => setViewing(null)}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.2rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FaTimes />
+            </button>
+
+            <h4 className="mb-3">{viewing.title}</h4>
+            <p className="text-muted mb-3">
+              {viewing.date} - {viewing.author}
+            </p>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{viewing.message}</p>
+            
+            <div className="text-end">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setViewing(null)}
+              >
+                Cerrar
               </button>
             </div>
           </div>
