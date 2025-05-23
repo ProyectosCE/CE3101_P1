@@ -16,16 +16,12 @@ namespace CEDigital_api.Controllers.Sql
             _context = context;
         }
 
-        // GET: api/rubros?idCurso=curso123
-        [HttpGet]
-        public async Task<IActionResult> GetRubrosByCurso([FromQuery] string idCurso)
+        // GET : api/rubros/{id_grupo}
+        [HttpGet("{id_grupo}")]
+        public async Task<IActionResult> GetRubrosByGrupo(int id_grupo)
         {
-            if (string.IsNullOrEmpty(idCurso))
-                return BadRequest("Debe proporcionar el parámetro 'idCurso'.");
-
             var rubros = await _context.Rubro
-                .Include(r => r.grupo)
-                .Where(r => r.grupo!.codigo_curso == idCurso)
+                .Where(r => r.id_grupo == id_grupo)
                 .Select(r => new
                 {
                     id = r.id_rubro,
@@ -33,91 +29,99 @@ namespace CEDigital_api.Controllers.Sql
                     porcentaje = r.porcentaje
                 })
                 .ToListAsync();
-
+            if (rubros == null || !rubros.Any())
+                return NotFound($"No se encontraron rubros para el grupo con ID {id_grupo}.");
             return Ok(rubros);
         }
 
-        // POST: api/rubros
-        [HttpPost]
-        public async Task<IActionResult> CreateRubro([FromBody] RubroCreateDto rubroDto)
+        // POST: api/Rubros/{id_grupo}
+        [HttpPost("{id_grupo}")]
+        public async Task<IActionResult> CreateRubro(int id_grupo, [FromBody] Rubro rubro)
         {
-            // Buscar el grupo que corresponde al curso
-            var grupo = await _context.Grupo
-                .FirstOrDefaultAsync(g => g.codigo_curso == rubroDto.idCurso);
-
+            if (rubro == null)
+                return BadRequest("El rubro no puede ser nulo.");
+            var grupo = await _context.Grupo.FindAsync(id_grupo);
             if (grupo == null)
-                return NotFound($"No se encontró grupo para el curso con código {rubroDto.idCurso}.");
+                return NotFound($"Grupo con ID {id_grupo} no encontrado.");
+            rubro.id_grupo = grupo.id_grupo;
 
-            var rubro = new Rubro
-            {
-                nombre = rubroDto.nombre,
-                porcentaje = rubroDto.porcentaje,
-                id_grupo = grupo.id_grupo
-            };
+            // Verificar si la suma de los porcentajes de los rubros es 100% 
+            if (sumaPorcentajeTotal(grupo.id_grupo, rubro.porcentaje))
+                return BadRequest("La suma de los porcentajes de los rubros no puede ser mayor a 100%.");
 
             _context.Rubro.Add(rubro);
             await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = rubro.id_rubro,
-                nombre = rubro.nombre,
-                porcentaje = rubro.porcentaje
-            });
+            return CreatedAtAction(nameof(GetRubrosByGrupo), new { id_grupo = grupo.id_grupo }, rubro);
         }
 
-        // PATCH: api/rubros/{id}
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateRubro(int id, [FromBody] RubroUpdateDto rubroDto)
+        // PATCH: api/Rubros/{id_rubro}
+        [HttpPatch("{id_rubro}")]
+        public async Task<IActionResult> UpdateRubro(int id_rubro, [FromBody] Rubro rubro)
         {
-            var rubro = await _context.Rubro.FindAsync(id);
             if (rubro == null)
-                return NotFound($"Rubro con ID {id} no encontrado.");
+                return BadRequest("El rubro no puede ser nulo.");
 
-            if (!string.IsNullOrEmpty(rubroDto.nombre))
-                rubro.nombre = rubroDto.nombre;
+            var existingRubro = await _context.Rubro.FindAsync(id_rubro);
+            if (existingRubro == null)
+                return NotFound($"Rubro con ID {id_rubro} no encontrado.");
 
-            if (rubroDto.porcentaje.HasValue)
-                rubro.porcentaje = rubroDto.porcentaje.Value;
+            if (sumaPorcentajeTotal(existingRubro.id_grupo, rubro.porcentaje, existingRubro.id_rubro))
+                return BadRequest("La suma de los porcentajes de los rubros no puede ser mayor a 100%.");
 
-            _context.Entry(rubro).State = EntityState.Modified;
+            // Actualizar solo campos necesarios
+            existingRubro.nombre = rubro.nombre;
+            existingRubro.porcentaje = rubro.porcentaje;
+
             await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = rubro.id_rubro,
-                nombre = rubro.nombre,
-                porcentaje = rubro.porcentaje
-            });
+            return Ok(existingRubro);
         }
 
-        // DELETE: api/rubros/{id}
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRubro(int id)
-        {
-            var rubro = await _context.Rubro.FindAsync(id);
-            if (rubro == null)
-                return NotFound($"Rubro con ID {id} no encontrado.");
 
+        // DELETE: api/Rubros/{id_rubro}
+        [HttpDelete("{id_rubro}")]
+        public async Task<IActionResult> DeleteRubro(int id_rubro)
+        {
+            var rubro = await _context.Rubro.FindAsync(id_rubro);
+            if (rubro == null)
+                return NotFound($"Rubro con ID {id_rubro} no encontrado.");
             _context.Rubro.Remove(rubro);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
-    }
 
-    // DTOs
+        // GET: api/Rubros/porcentajeTotal/{id_grupo}
+        // Devuelve el porcentaje total de los rubros de un grupo
+        [HttpGet("porcentajeTotal/{id_grupo}")]
+        public async Task<IActionResult> GetPorcentajeTotal(int id_grupo)
+        {
+            var rubros = await _context.Rubro
+                .Where(r => r.id_grupo == id_grupo)
+                .ToListAsync();
+            if (rubros == null || !rubros.Any())
+                return NotFound($"No se encontraron rubros para el grupo con ID {id_grupo}.");
+            var total = rubros.Sum(r => r.porcentaje);
+            return Ok(new { total });
+        }
 
-    public class RubroCreateDto
-    {
-        public string idCurso { get; set; } = null!;
-        public string nombre { get; set; } = null!;
-        public double porcentaje { get; set; }
-    }
+        // Metodo para verificar si la suma de los porcentajes de los rubros es mayor a 100%
+        private bool sumaPorcentajeTotal(int id_grupo, double nuevoPorcentaje, int? id_rubro_actual = null)
+        {
+            var rubrosExistentes = _context.Rubro
+                .Where(r => r.id_grupo == id_grupo)
+                .ToList();
 
-    public class RubroUpdateDto
-    {
-        public string? nombre { get; set; }
-        public double? porcentaje { get; set; }
+            if (id_rubro_actual.HasValue)
+            {
+                var rubroActual = rubrosExistentes.FirstOrDefault(r => r.id_rubro == id_rubro_actual.Value);
+                if (rubroActual != null)
+                { 
+                    rubrosExistentes.Remove(rubroActual);
+                }
+            }
+
+            var sumaPorcentajes = rubrosExistentes.Sum(r => r.porcentaje) + nuevoPorcentaje;
+            return sumaPorcentajes > 100;
+        }
+
     }
 }

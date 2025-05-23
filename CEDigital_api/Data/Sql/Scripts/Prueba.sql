@@ -72,9 +72,9 @@ DECLARE @id_grupo INT = (SELECT id_grupo FROM Grupo WHERE codigo_curso = 'CE1101
 
 
 INSERT INTO Rubro (nombre, porcentaje, id_grupo) VALUES
-('Quices', 30, @id_grupo),
-('Exámenes', 30, @id_grupo),
-('Proyectos', 40, @id_grupo);
+('Quices', 30.00, @id_grupo),
+('Exámenes', 30.00, @id_grupo),
+('Proyectos', 40.00, @id_grupo);
 
 INSERT INTO Carpeta (nombre, id_grupo) VALUES
 ('Presentaciones', @id_grupo),
