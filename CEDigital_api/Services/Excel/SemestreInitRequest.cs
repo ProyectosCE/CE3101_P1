@@ -1,4 +1,4 @@
-﻿namespace CEDigital_api.Models.Excel
+﻿namespace CEDigital_api.Services.Excel
 {
     public class SemestreInitRequest
     {

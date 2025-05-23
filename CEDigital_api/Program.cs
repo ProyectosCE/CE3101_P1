@@ -1,5 +1,6 @@
 using CEDigital_api.Data.Mongo;
 using CEDigital_api.Data.Sql;
+using CEDigital_api.Services.Archivos;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<SqlService>();
 builder.Services.AddScoped<SqlEstudianteService>();
 builder.Services.AddScoped<SqlProfesorService>();
+builder.Services.AddScoped<ArchivoService>();
 //builder.Services.AddScoped<MongoSeeder>();
 
 
@@ -60,6 +62,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
+
+app.UseStaticFiles();
 
 app.UseAuthorization();
 

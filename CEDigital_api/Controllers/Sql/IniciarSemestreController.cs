@@ -1,9 +1,9 @@
 ﻿using CEDigital_api.Data.Sql;
 using Microsoft.AspNetCore.Mvc;
-using CEDigital_api.Models.Excel;
 using OfficeOpenXml;
 using CEDigital_api.Models.Sql;
 using Microsoft.EntityFrameworkCore;
+using CEDigital_api.Services.Excel;
 
 namespace CEDigital_api.Controllers.Sql
 {

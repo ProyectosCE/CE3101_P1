@@ -1,7 +1,9 @@
-﻿namespace CEDigital_api.Models.Excel
+﻿namespace CEDigital_api.Services.Excel
 {
-    public class GrupoInput
+    public class PersonaXGrupoInput
     {
+        public string Id { get; set; } // cedula o carnet
+        public string Rol { get; set; } // "estudiante" o "profesor"
         public string CodigoCurso { get; set; }
         public int NumeroGrupo { get; set; }
         public int AnioSemestre { get; set; }
