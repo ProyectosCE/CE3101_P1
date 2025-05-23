@@ -73,12 +73,12 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCarpetaById), new { id = carpeta.id_carpeta }, carpeta);
         }
 
-        //DELETE: api/carpeta/{id}
+        //DELETE: api/carpeta/{id_carpeta}
         // Elimina solo si fue creado por un profesor
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCarpeta(int id)
+        [HttpDelete("{id_carpeta}")]
+        public async Task<IActionResult> DeleteCarpeta(int id_carpeta)
         {
-            var carpeta = await _context.Carpeta.FindAsync(id);
+            var carpeta = await _context.Carpeta.FindAsync(id_carpeta);
             if (carpeta == null)
                 return NotFound();
             if (carpeta.cedula_profesor == null)
@@ -88,15 +88,22 @@ namespace CEDigital_api.Controllers.Sql
             return NoContent();
         }
 
-        //PATCH: api/carpeta/{id}
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateCarpeta(int id, [FromBody] Carpeta carpeta)
+        //PATCH: api/carpeta/{id_carpeta}
+        [HttpPatch("{id_carpeta}")]
+        public async Task<IActionResult> UpdateCarpeta(int id_carpeta, [FromBody] Carpeta updatedCarpeta)
         {
-            if (id != carpeta.id_carpeta)
-                return BadRequest("El ID de la carpeta no coincide.");
-            _context.Entry(carpeta).State = EntityState.Modified;
+            if (updatedCarpeta == null)
+                return BadRequest("No puede ser null.");
+
+            var existingCarpeta = await _context.Carpeta.FindAsync(id_carpeta);
+            if (existingCarpeta == null)
+                return NotFound("Carpeta no encontrada.");
+
+            existingCarpeta.nombre = updatedCarpeta.nombre;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
     }
 }

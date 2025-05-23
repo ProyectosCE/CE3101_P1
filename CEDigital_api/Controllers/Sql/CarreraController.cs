@@ -2,6 +2,7 @@
 using CEDigital_api.Models.Sql;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CEDigital_api.Controllers.Sql
 {
@@ -15,11 +16,20 @@ namespace CEDigital_api.Controllers.Sql
         {
             _context = context;
         }
-        // GET: api/carreras/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCarreraById(string id)
+
+        // GET: api/carreras
+        [HttpGet]
+        public async Task<IActionResult> GetAllCarreras()
         {
-            var carrera = await _context.Carrera.FindAsync(id);
+            var carreras = await _context.Carrera.ToListAsync();
+            return Ok(carreras);
+        }
+
+        // GET: api/carreras/{codigo_carrera}
+        [HttpGet("{codigo_carrera}")]
+        public async Task<IActionResult> GetCarreraById(string codigo_carrera)
+        {
+            var carrera = await _context.Carrera.FindAsync(codigo_carrera);
 
             if (carrera == null)
                 return NotFound();
@@ -40,33 +50,30 @@ namespace CEDigital_api.Controllers.Sql
             return CreatedAtAction(nameof(GetCarreraById), new { id = carrera.codigo_carrera }, carrera);
         }
 
-        // PATCH: api/carreras/{id}
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateCarrera(string id, [FromBody] Carrera carrera)
+        // PATCH: api/carreras
+        [HttpPatch]
+        public async Task<IActionResult> UpdateCarrera([FromBody] Carrera updatedCarrera)
         {
-            if (id != carrera.codigo_carrera)
-                return BadRequest("El ID de la carrera no coincide.");
-            _context.Entry(carrera).State = EntityState.Modified;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                var carrera_exist = await _context.Carrera.FindAsync(id);
-                if (carrera_exist == null)
-                    return NotFound();
-                else
-                    throw;
-            }
+            if (updatedCarrera == null || string.IsNullOrWhiteSpace(updatedCarrera.codigo_carrera))
+                return BadRequest("El cuerpo de la solicitud debe incluir un código de carrera válido.");
+
+            var existingCarrera = await _context.Carrera.FindAsync(updatedCarrera.codigo_carrera);
+            if (existingCarrera == null)
+                return NotFound("Carrera no encontrada.");
+
+            // Actualizar campos permitidos
+            existingCarrera.nombre = updatedCarrera.nombre;
+
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // PATCH: api/carreras/{id}/toggle
-        [HttpPatch("{id}/toggle")]
-        public async Task<IActionResult> ToggleCarrera(string id)
+
+        // PATCH: api/carreras/{codigo_carrera}/toggle
+        [HttpPatch("{codigo_carrera}/toggle")]
+        public async Task<IActionResult> ToggleCarrera(string codigo_carrera)
         {
-            var carrera = await _context.Carrera.FindAsync(id);
+            var carrera = await _context.Carrera.FindAsync(codigo_carrera);
             if (carrera == null)
                 return NotFound();
             carrera.estado = carrera.estado == "activo" ? "inactivo" : "activo";
@@ -74,8 +81,5 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
-
-        // POST: api/carreras/upload-excel
-        // Falta implementar la carga de Excel
     }
 }
