@@ -38,12 +38,14 @@ namespace CEDigital_api.Controllers.Sql
 
             while (
                 !string.IsNullOrEmpty(hoja.Cells[fila, 2].Text) ||  // B - anio semestre
-                !string.IsNullOrEmpty(hoja.Cells[fila, 5].Text) ||  // E - curso grupo
-                !string.IsNullOrEmpty(hoja.Cells[fila, 10].Text))   // J - id persona
+                !string.IsNullOrEmpty(hoja.Cells[fila, 6].Text) ||  // F - curso grupo 
+                !string.IsNullOrEmpty(hoja.Cells[fila, 11].Text))   // K - id persona 
             {
                 // --- Semestre ---
                 var anioTexto = hoja.Cells[fila, 2].Text.Trim(); // B
                 var periodoTexto = hoja.Cells[fila, 3].Text.Trim(); // C
+                var estadoTexto = hoja.Cells[fila, 4].Text.Trim().ToLower(); // D
+
 
                 if (int.TryParse(anioTexto, out int anio) && !string.IsNullOrEmpty(periodoTexto))
                 {
@@ -54,16 +56,17 @@ namespace CEDigital_api.Controllers.Sql
                         request.Semestres.Add(new SemestreInput
                         {
                             Anio = anio,
-                            Periodo = periodoTexto
+                            Periodo = periodoTexto,
+                            Estado = string.IsNullOrEmpty(estadoTexto) ? "inactivo" : estadoTexto
                         });
                     }
                 }
 
                 // --- Grupo ---
-                var codigoCurso = hoja.Cells[fila, 5].Text.Trim(); // E
-                var numGrupo = hoja.Cells[fila, 6].Text.Trim(); // F
-                var anioGrupo = hoja.Cells[fila, 7].Text.Trim(); // G
-                var periodoGrupo = hoja.Cells[fila, 8].Text.Trim(); // H
+                var codigoCurso = hoja.Cells[fila, 6].Text.Trim(); // F
+                var numGrupo = hoja.Cells[fila, 7].Text.Trim(); // G
+                var anioGrupo = hoja.Cells[fila, 8].Text.Trim(); // H
+                var periodoGrupo = hoja.Cells[fila, 9].Text.Trim(); // I
 
                 if (!string.IsNullOrEmpty(codigoCurso) &&
                     int.TryParse(numGrupo, out int numeroGrupo) &&
@@ -80,12 +83,12 @@ namespace CEDigital_api.Controllers.Sql
                 }
 
                 // --- PersonaXGrupo ---
-                var idPersona = hoja.Cells[fila, 10].Text.Trim(); // J
-                var rol = hoja.Cells[fila, 11].Text.Trim(); // K
-                var codCursoPXG = hoja.Cells[fila, 12].Text.Trim(); // L
-                var numGrupoPXG = hoja.Cells[fila, 13].Text.Trim(); // M
-                var anioPXG = hoja.Cells[fila, 14].Text.Trim(); // N
-                var periodoPXG = hoja.Cells[fila, 15].Text.Trim(); // O
+                var idPersona = hoja.Cells[fila, 11].Text.Trim(); // K
+                var rol = hoja.Cells[fila, 12].Text.Trim(); // L
+                var codCursoPXG = hoja.Cells[fila, 13].Text.Trim(); // M
+                var numGrupoPXG = hoja.Cells[fila, 14].Text.Trim(); // N
+                var anioPXG = hoja.Cells[fila, 15].Text.Trim(); // O
+                var periodoPXG = hoja.Cells[fila, 16].Text.Trim(); // P
 
                 if (!string.IsNullOrEmpty(idPersona) &&
                     !string.IsNullOrEmpty(rol) &&
@@ -132,12 +135,20 @@ namespace CEDigital_api.Controllers.Sql
                     continue;
                 }
 
+                // Verificar formato de estado
+                if (!new[] { "inactivo", "activo" }.Contains(s.Estado.ToLower()))
+                {
+                    errores.Add($"Estado inválido: {s.Anio}-{s.Periodo} - {s.Estado}");
+                    continue;
+                }
+
+                // Verificar si el semestre ya existe
                 var existente = await _context.Semestre
                     .FirstOrDefaultAsync(x => x.anio == s.Anio && x.periodo == s.Periodo);
 
                 if (existente == null)
                 {
-                    var nuevo = new Semestre { anio = s.Anio, periodo = s.Periodo };
+                    var nuevo = new Semestre { anio = s.Anio, periodo = s.Periodo, estado = s.Estado };
                     _context.Semestre.Add(nuevo);
                     await _context.SaveChangesAsync();
                     semestreIdMap[(s.Anio, s.Periodo)] = nuevo.id_semestre;
