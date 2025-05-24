@@ -108,7 +108,7 @@ GO
 CREATE TABLE Rubro (
     id_rubro          INT IDENTITY(1,1) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
-    porcentaje        FLOAT(5,2) NOT NULL,
+    porcentaje        FLOAT NOT NULL,
     id_grupo          INT NOT NULL
 );
 GO

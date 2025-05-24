@@ -16,6 +16,8 @@ namespace CEDigital_api.Models.Sql
 
         // Foreign Keys
         public string codigo_carrera { get; set; }
+        
+        [JsonIgnore]
         public Carrera? carrera { get; set; }
 
     }

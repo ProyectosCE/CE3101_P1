@@ -1,6 +1,7 @@
 ﻿using CEDigital_api.Data.Mongo;
 using CEDigital_api.Models.Mongo;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 
 namespace CEDigital_api.Controllers.Mongo
 {
@@ -23,7 +24,17 @@ namespace CEDigital_api.Controllers.Mongo
         public async Task<ActionResult<List<Profesor>>> GetAll()
         {
             var profesores = await _profesorService.GetAllAsync();
-            return Ok(profesores);
+            var profesoresSinInfo = profesores.Select(p => new
+            {
+                p.Id,
+                p.cedula,
+                p.nombre,
+                p.apellidos,
+                p.nombre_completo,
+                p.correo,
+                p.estado
+            });
+            return Ok(profesoresSinInfo);
         }
 
         // POST: api/profesores
@@ -74,6 +85,9 @@ namespace CEDigital_api.Controllers.Mongo
         [HttpPatch("{id}/toggle")]
         public async Task<ActionResult> Toggle(string id)
         {
+            if (!ObjectId.TryParse(id, out _))
+                return BadRequest("Invalid id format. Must be a 24-digit hexadecimal string.");
+
             var profesor = await _profesorService.GetByIdAsync(id);
             if (profesor == null)
                 return NotFound("Profesor no encontrado.");
@@ -86,6 +100,9 @@ namespace CEDigital_api.Controllers.Mongo
         [HttpPatch("{id}/admin/toggle")]
         public async Task<ActionResult> ToggleAdmin(string id)
         {
+            if (!ObjectId.TryParse(id, out _))
+                return BadRequest("Invalid id format. Must be a 24-digit hexadecimal string.");
+
             var profesor = await _profesorService.GetByIdAsync(id);
             if (profesor == null)
                 return NotFound("Profesor no encontrado.");

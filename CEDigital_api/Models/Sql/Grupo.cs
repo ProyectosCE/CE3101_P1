@@ -29,10 +29,16 @@ namespace CEDigital_api.Models.Sql
         public ICollection<CategoriaGrupo> categorias { get; set; } = new List<CategoriaGrupo>();
 
         // Fks
+
+        [JsonIgnore]
         public int id_semestre { get; set; }
+
+        [JsonIgnore]
         public Semestre? semestre { get; set; }
 
         public string? codigo_curso { get; set; }
+
+        [JsonIgnore]
         public Curso? curso { get; set; }
     }
 }

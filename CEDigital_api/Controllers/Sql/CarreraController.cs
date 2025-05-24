@@ -36,6 +36,7 @@ namespace CEDigital_api.Controllers.Sql
 
             return Ok(carrera);
         }
+
         // POST: api/carreras
         [HttpPost]
         public async Task<IActionResult> AddCarrera([FromBody] Carrera carrera)
@@ -43,12 +44,18 @@ namespace CEDigital_api.Controllers.Sql
             if (carrera == null)
                 return BadRequest("Carrera no puede ser null.");
 
+            // Validar si el código de carrera ya existe
+            var existingCarrera = await _context.Carrera.FindAsync(carrera.codigo_carrera);
+            if (existingCarrera != null)
+                return BadRequest($"La carrera con código '{carrera.codigo_carrera}' ya existe.");
+
             await _context.Carrera.AddAsync(carrera);
             await _context.SaveChangesAsync();
 
-            // Devuelve 201 Created con la ubicación del recurso creado
-            return CreatedAtAction(nameof(GetCarreraById), new { id = carrera.codigo_carrera }, carrera);
+            // Corregir el error de CreatedAtAction
+            return CreatedAtAction(nameof(GetCarreraById), new { codigo_carrera = carrera.codigo_carrera }, carrera);
         }
+
 
         // PATCH: api/carreras/{codigo_carrera}
         [HttpPatch("{codigo_carrera}")]
@@ -82,6 +89,19 @@ namespace CEDigital_api.Controllers.Sql
                 return NotFound();
             carrera.estado = carrera.estado == "activo" ? "inactivo" : "activo";
             _context.Entry(carrera).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // DELETE: api/carreras/{codigo_carrera}
+        [HttpDelete("{codigo_carrera}")]
+        public async Task<IActionResult> DeleteCarrera(string codigo_carrera)
+        {
+            var carrera = await _context.Carrera.FindAsync(codigo_carrera);
+            if (carrera == null)
+                return NotFound();
+
+            _context.Carrera.Remove(carrera);
             await _context.SaveChangesAsync();
             return NoContent();
         }
