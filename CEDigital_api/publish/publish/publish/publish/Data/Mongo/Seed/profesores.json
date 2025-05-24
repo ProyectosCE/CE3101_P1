@@ -1,0 +1,20 @@
+[
+  {
+    "cedula": "12345678",
+    "nombre": "Marco",
+    "apellidos": "Rivera Meneses",
+    "correo": "marivera@itcr.ac.cr",
+    "password": "12345678",
+    "isAdmin": true,
+    "estado": "activo"
+  },
+  {
+    "cedula": "87654321",
+    "nombre": "Paola",
+    "apellidos": "Vega Castillo",
+    "correo": "pvega@itcr.ac.cr)",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "carnet": "2023060347",
+    "cedula": "119130537",
+    "nombre": "Jimmy",
+    "apellidos": "Feng Feng",
+    "correo": "jifeng@estudiantec.cr",
+    "telefono": "89613690",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  },
+  {
+    "carnet": "2023207992",
+    "cedula": "11452314",
+    "nombre": "Adrian",
+    "apellidos": "Munoz Alvarado",
+    "correo": "admunoz@estudiantec.cr",
+    "telefono": "87778888",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  },
+  {
+    "carnet": "2023166058",
+    "cedula": "423143324",
+    "nombre": "Alexander",
+    "apellidos": "Montero Vargas",
+    "correo": "almontero@estudiantec.cr",
+    "telefono": "74554545",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  },
+  {
+    "carnet": "2023107645",
+    "cedula": "543253143",
+    "nombre": "Diego",
+    "apellidos": "Salas Ovares",
+    "correo": "disalas@estudiantec.cr",
+    "telefono": "85674563",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  },
+  {
+    "carnet": "2023150476",
+    "cedula": "423123412",
+    "nombre": "Jose Bernardo",
+    "apellidos": "Barquero Bonilla",
+    "correo": "jobarquero@estudiantec.cr",
+    "telefono": "53425",
+    "password": "12345678",
+    "isAdmin": false,
+    "estado": "activo"
+  }
+]
