@@ -4,25 +4,43 @@ import RubricModal from './RubricModal'
 import { rubrosApi, type Rubric as ApiRubric } from '@/Functions/Professor/evaluationsApi'
 import type { Rubric as ComponentRubric } from '@/types/evaluation'
 
-const RubricList: React.FC = () => {
-  const [rubrics, setRubrics] = useState<ApiRubric[]>([])
+interface RubricListProps {
+  groupId?: string
+}
+
+const RubricList: React.FC<RubricListProps> = ({groupId}) => {
+  const [rubrics, setRubrics] = useState<ApiRubric[]>([]) // Initialize as empty array
   const [showModal, setShowModal] = useState(false)
   const [editingRubric, setEditingRubric] = useState<ComponentRubric | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load rubrics on mount
+  // Load rubrics on mount and when groupId changes
   useEffect(() => {
+    if (!groupId) {
+      setError('No se ha seleccionado un grupo')
+      setLoading(false)
+      return
+    }
     loadRubrics()
-  }, [])
+  }, [groupId])
 
   const loadRubrics = async () => {
     setLoading(true)
+    setError(null)
     try {
-      const { data } = await rubrosApi.getRubros()
-      setRubrics(data.rubros)
+      const response = await rubrosApi.getRubros(Number(groupId))
+      console.log('API Response:', response) // Log the response for debugging
+      if (Array.isArray(response.data)) {
+        setRubrics(response.data) // Extract the array from the data property
+      } else {
+        console.error('Unexpected API response format:', response)
+        setRubrics([]) // Reset to empty array if response format is unexpected
+      }
     } catch (error) {
       console.error('Error loading rubrics:', error)
-      alert('Error al cargar los rubros')
+      setError('Error al cargar los rubros')
+      setRubrics([]) // Reset to empty array on error
     } finally {
       setLoading(false)
     }
@@ -53,7 +71,13 @@ const RubricList: React.FC = () => {
 
   const handleSave = (rubric: ComponentRubric) => {
     const apiRubric = componentToApiRubric(rubric)
-    
+    const newTotalWeight = rubrics.reduce((sum, r) => sum + r.porcentaje, 0) + apiRubric.porcentaje
+
+    if (newTotalWeight > 100) {
+      alert('La suma de los porcentajes no debe superar el 100%.')
+      return
+    }
+
     if (editingRubric) {
       rubrosApi.updateRubro(rubric.id, apiRubric)
         .then(() => loadRubrics())
@@ -62,7 +86,7 @@ const RubricList: React.FC = () => {
           alert('Error al actualizar el rubro')
         })
     } else {
-      rubrosApi.createRubro(apiRubric)
+      rubrosApi.createRubro(Number(groupId), apiRubric) // Pass groupId to createRubro
         .then(() => loadRubrics())
         .catch(error => {
           console.error('Error creating rubric:', error)
@@ -84,11 +108,17 @@ const RubricList: React.FC = () => {
     }
   }
 
-  const totalWeight = rubrics.reduce((sum, r) => sum + r.porcentaje, 0)
-
   if (loading) {
     return <div className="text-center">Cargando rubros...</div>
   }
+
+  if (error) {
+    return <div className="alert alert-danger">{error}</div>
+  }
+
+  const totalWeight = Array.isArray(rubrics) 
+    ? rubrics.reduce((sum, r) => sum + r.porcentaje, 0) 
+    : 0 // Safeguard to ensure rubrics is an array
 
   return (
     <div className="rubric-list">

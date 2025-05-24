@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal } from 'react-bootstrap'
 import { v4 as uuidv4 } from 'uuid'
 import { GroupActivity } from '@/types/groups'
@@ -7,18 +7,34 @@ interface GroupTypeModalProps {
   show: boolean
   onHide: () => void
   onSave: (groupType: GroupActivity) => void
+  editingType?: GroupActivity | null // Nuevo prop opcional para edición
 }
 
-const GroupTypeModal: React.FC<GroupTypeModalProps> = ({ show, onHide, onSave }) => {
+const GroupTypeModal: React.FC<GroupTypeModalProps> = ({ show, onHide, onSave, editingType = null }) => {
   const [name, setName] = useState('')
+  const [isEditingType, setIsEditingType] = useState(false)
+
+  // Efecto para inicializar el modal según si es edición o nuevo
+  useEffect(() => {
+    if (show) {
+      if (editingType) {
+        setName(editingType.name)
+        setIsEditingType(true)
+      } else {
+        setName('')
+        setIsEditingType(false)
+      }
+    }
+  }, [show, editingType])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSave({
-      id: uuidv4(),
+      id: editingType ? editingType.id : uuidv4(),
       name: name.trim()
     })
     setName('')
+    setIsEditingType(false)
     onHide()
   }
 
@@ -26,7 +42,9 @@ const GroupTypeModal: React.FC<GroupTypeModalProps> = ({ show, onHide, onSave })
     <Modal show={show} onHide={onHide}>
       <form onSubmit={handleSubmit}>
         <Modal.Header closeButton>
-          <Modal.Title>Nuevo Tipo de Grupo</Modal.Title>
+          <Modal.Title>
+            {isEditingType ? 'Editar Categoría' : 'Nuevo Tipo de Grupo'}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="mb-3">

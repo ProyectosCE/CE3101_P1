@@ -6,7 +6,7 @@ import type { Category, Minigroup } from '@/Functions/Professor/groupManagerApi'
 import { useGroupsStore } from '@/stores/groupsStore'
 import { useRelationshipStore } from '@/stores/relationshipsStore'
 import { v4 as uuidv4 } from 'uuid'
-import { getAllStudentsByCourse } from '@/Functions/Professor/studentsApi'
+import { getStudentsByCourse } from '@/Functions/Professor/studentsApi'
 
 // Update Props interface
 interface GroupModalProps {
@@ -48,6 +48,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
   const [availableStudents, setAvailableStudents] = useState<Student[]>([])
   const [allStudents, setAllStudents] = useState<Student[]>([])
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
+  
 
   // Helper function to get students in a category
   const getStudentsInCategory = (categoryId: string) => {
@@ -60,41 +61,40 @@ const GroupModal: React.FC<GroupModalProps> = ({
   }
 
   // Modified function to update available students
-  const updateAvailableStudents = async () => {
-    if (!form.activityId) {
-      setAvailableStudents([])
-      return
-    }
-
-    try {
-      setIsLoadingStudents(true)
-      // Get all course students
-      const allCourseStudents = await getAllStudentsByCourse(courseId)
-      
-      // Get set of students already in groups for this category
-      const studentsInGroups = new Set(
-        minigroups
-          .filter(g => g.idCat === form.activityId && g.id !== form.id)
-          .flatMap(g => g.estudiantes)
-          .map(s => s.carnet)
-      )
-
-      // Filter available students:
-      // 1. Not in other groups of this category
-      // 2. Or is a current member of this group (when editing)
-      const availableStuds = allCourseStudents.filter(student => {
-        const isInOtherGroup = studentsInGroups.has(student.carnet)
-        const isCurrentMember = form.members.some(m => m.carnet === student.carnet)
-        return !isInOtherGroup || isCurrentMember
-      })
-
-      setAvailableStudents(availableStuds)
-    } catch (error) {
-      console.error('Error updating available students:', error)
-    } finally {
-      setIsLoadingStudents(false)
-    }
+  // Modified function to update available students
+const updateAvailableStudents = async () => {
+  if (!form.activityId) {
+    setAvailableStudents([])
+    return
   }
+
+  try {
+    setIsLoadingStudents(true)
+    const allCourseStudents = await getStudentsByCourse(courseId)
+
+    // Convertir form.activityId a string para comparación consistente
+    const activityIdStr = String(form.activityId)
+    
+    const studentsInGroups = new Set(
+      minigroups
+        .filter(g => String(g.idCat) === activityIdStr && g.id !== form.id)
+        .flatMap(g => g.estudiantes)
+        .map(s => s.carnet)
+    )
+
+    const availableStuds = allCourseStudents.filter(student => {
+      const isInGroup = studentsInGroups.has(student.carnet)
+      return !isInGroup
+    })
+
+    setAvailableStudents(availableStuds)
+  } catch (error) {
+    console.error('Error updating available students:', error)
+  } finally {
+    setIsLoadingStudents(false)
+  }
+}
+
 
   // Reset form and available students when modal is shown/hidden
   useEffect(() => {
@@ -119,6 +119,11 @@ const GroupModal: React.FC<GroupModalProps> = ({
     }
   }, [show, group, selectedCategoryId])
 
+  useEffect(() => {
+  console.log('Available categories:', availableCategories);
+  console.log('Selected category ID:', selectedCategoryId);
+}, [availableCategories, selectedCategoryId]);
+
   // Update useEffect to watch for activityId changes
   useEffect(() => {
     if (show && form.activityId) {
@@ -126,27 +131,27 @@ const GroupModal: React.FC<GroupModalProps> = ({
     }
   }, [show, form.activityId, courseId])
 
+  // Inicialización del formulario según modo
   useEffect(() => {
     if (show) {
       if (mode.startsWith('edit') && group) {
-        // When editing, preserve all existing group data and merge with current members
+        // Editar: cargar datos del grupo existente
         setForm({
           ...group,
-          activityId: group.activityId || 'general'
+          activityId: group.activityId || selectedCategoryId || ''
         })
-        
-        // Get available students and merge with current group members
+        // Cargar estudiantes disponibles para edición
         const availableStudentsList = getAvailableStudents(group.activityId || null, group.id)
         setAvailableStudents(availableStudentsList)
-      } else {
-        // For new groups, start fresh
+      } else if (mode.startsWith('new')) {
+        // Nuevo: limpiar formulario
         setForm({
           id: uuidv4(),
           name: '',
           activityId: mode === 'newEvaluationStatic' ? group?.activityId || null : null,
           members: []
         })
-        // Get all available students for this category
+        // Cargar estudiantes disponibles para nuevo grupo
         const availableStudentsList = getAvailableStudents(
           mode === 'newEvaluationStatic' ? group?.activityId || null : null
         )
@@ -154,7 +159,17 @@ const GroupModal: React.FC<GroupModalProps> = ({
       }
       setSearch('')
     }
-  }, [show, group, mode, getAvailableStudents])
+    if (!show) {
+      // Limpiar al cerrar
+      setForm({
+        id: uuidv4(),
+        name: '',
+        activityId: null,
+        members: []
+      })
+      setAvailableStudents([])
+    }
+  }, [show, group, mode, getAvailableStudents, selectedCategoryId])
 
   // Load all students when modal opens
   useEffect(() => {
@@ -162,9 +177,33 @@ const GroupModal: React.FC<GroupModalProps> = ({
       if (show) {
         try {
           setIsLoadingStudents(true)
-          const students = await getAllStudentsByCourse(courseId)
-          setAllStudents(students)
-          updateAvailableStudents()
+          const studentsRaw = await getStudentsByCourse(courseId)
+          // Prefer nombre + apellidos if available, else use name
+          const students = studentsRaw.map(s => {
+            let nombreCompleto = s.name
+            if ('nombre' in s && 'apellidos' in s) {
+              nombreCompleto = `${(s as any).nombre} ${(s as any).apellidos}`.trim()
+            }
+            return {
+              carnet: s.carnet,
+              nombre: nombreCompleto
+            }
+          })
+          // Exclude students already in any group for this category (by carnet)
+          const activityIdStr = String(form.activityId ?? '')
+          const carnetsInCategory = new Set(
+            minigroups
+              .filter(g => String(g.idCat) === activityIdStr)
+              .flatMap(g => g.estudiantes)
+              .map(s => s.carnet)
+          )
+          // Exclude also those already selected in this group (form.members)
+          const selectedCarnets = new Set(form.members.map(m => m.carnet))
+          const filteredStudents = students.filter(
+            s => !carnetsInCategory.has(s.carnet) && !selectedCarnets.has(s.carnet)
+          )
+          setAllStudents(filteredStudents)
+          setAvailableStudents(filteredStudents)
         } catch (error) {
           console.error('Error loading students:', error)
         } finally {
@@ -173,7 +212,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
       }
     }
     loadAllStudents()
-  }, [show, courseId])
+  }, [show, courseId, form.activityId, form.members, minigroups])
 
   const addMember = (student: Student) => {
     // Check if student is already in the group
@@ -182,10 +221,15 @@ const GroupModal: React.FC<GroupModalProps> = ({
     }
     
     // Double check student is still available
-    const studentsInCategory = getStudentsInCategory(form.activityId || '')
-    if (studentsInCategory.has(student.carnet)) {
-      return // Student was added to another group
-    }
+    // 5. También verificar que getStudentsInCategory maneje tipos correctamente
+const getStudentsInCategory = (categoryId: string) => {
+  return new Set(
+    minigroups
+      .filter(g => String(g.idCat) === String(categoryId) && g.id !== form.id)
+      .flatMap(g => g.estudiantes)
+      .map(s => s.carnet)
+  )
+}
 
     setForm(prev => ({
       ...prev,
@@ -199,28 +243,27 @@ const GroupModal: React.FC<GroupModalProps> = ({
       ...prev,
       members: prev.members.filter(m => m.carnet !== student.carnet)
     }))
-    setAvailableStudents(prev => [...prev, student].sort((a, b) => 
-      a.apellido1.localeCompare(b.apellido1)
-    ))
   }
 
   const filteredStudents = availableStudents.filter(student => 
     student.carnet.includes(search) ||
-    `${student.apellido1} ${student.apellido2} ${student.nombre}`
+    `${student.nombre}`
       .toLowerCase()
       .includes(search.toLowerCase())
   )
 
   // Update handleTypeChange
   const handleTypeChange = (activityId: string) => {
-    setForm(prev => ({
-      ...prev,
-      activityId,
-      members: [] // Clear members when changing category
-    }))
-    updateAvailableStudents() // Update available students immediately
-  }
+  console.log('Changing activity ID to:', activityId);
+  setForm(prev => ({
+    ...prev,
+    activityId: activityId || null, // Asegurar que vacío se convierta a null
+    members: [] // Clear members when changing category
+  }))
+  updateAvailableStudents() // Update available students immediately
+}
 
+  // Guardar: distinguir entre nuevo y editar
   const handleSave = () => {
     // Get current and new member IDs
     const oldMemberIds = mode.startsWith('edit') ? 
@@ -266,23 +309,30 @@ const GroupModal: React.FC<GroupModalProps> = ({
             />
           </div>
 
-          {/* Category selector - show only if not in single category mode */}
           {!selectedCategoryId && (
             <div className="col-12">
               <label className="form-label">Categoría</label>
               <select
                 className="form-select"
-                value={form.activityId || ''}
+                value={form.activityId ? String(form.activityId) : ''}
                 onChange={e => handleTypeChange(e.target.value)}
                 required
               >
                 <option value="">Seleccionar categoría...</option>
-                {availableCategories.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nombre}
-                  </option>
-                ))}
+                {availableCategories && availableCategories.length > 0 ? (
+                  availableCategories.map(cat => (
+                    <option key={cat.id_categoria} value={String(cat.id_categoria)}>
+                      {cat.nombre_categoria || 'Categoría sin nombre'}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No hay categorías disponibles</option>
+                )}
               </select>
+              {/* Debug info - remover en producción */}
+              <small className="text-muted">
+                Categorías cargadas: {availableCategories?.length || 0}
+              </small>
             </div>
           )}
 
@@ -323,7 +373,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                       >
                         <small>{student.carnet}</small>
                         <br />
-                        {student.apellido1} {student.apellido2}, {student.nombre}
+                        {student.nombre}
                       </button>
                     ))}
                   </div>
@@ -339,7 +389,7 @@ const GroupModal: React.FC<GroupModalProps> = ({
                         <div>
                           <small>{member.carnet}</small>
                           <br />
-                          {member.apellido1} {member.apellido2}, {member.nombre}
+                          {member.nombre}
                         </div>
                         <button
                           type="button"

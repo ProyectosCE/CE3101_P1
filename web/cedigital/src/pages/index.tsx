@@ -8,12 +8,8 @@ const Home = () => {
   const { user, isAuthenticated } = useAuthStore()
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
+    if (isAuthenticated && user) { 
         router.push('/main')
-      }
     } else {
       router.push('/login')
     }

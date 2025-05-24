@@ -8,8 +8,9 @@ export interface StudentInfo {
 }
 
 export interface Category {
-    id: string;
-    nombre: string;
+    id_categoria: number;
+    nombre_categoria: string;
+    id_grupo: number;
 }
 
 export interface Minigroup {
@@ -22,39 +23,39 @@ export interface Minigroup {
 // API Functions for Categories
 export const categoryApi = {
     // Get all categories
-    getCategories: () => 
-        axios.get<{categorias: Category[]}>(`${API_BASE_URL}/categoriagrupo`),
+    getCategories: (id_grupo:number) => 
+        axios.get<Category[]>(`${API_BASE_URL}CategoriaGrupo/${id_grupo}`),
     
     // Create a new category
-    createCategory: (category: { nombre: string, id_grupo: number }) =>
-        axios.post(`${API_BASE_URL}/categoriagrupo`, category),
+    createCategory: (data: any) =>
+        axios.post(`${API_BASE_URL}CategoriaGrupo`, data),
     
     // Update an existing category
     updateCategory: (id: number, data: any) =>
-        axios.patch(`${API_BASE_URL}/categoriagrupo/${id}`, data),
+        axios.patch(`${API_BASE_URL}CategoriaGrupo${id}`, data),
     
     // Delete a category
     deleteCategory: (id: number) =>
-        axios.delete(`${API_BASE_URL}/categoriagrupo/${id}`)
+        axios.delete(`${API_BASE_URL}CategoriaGrupo/${id}`)
 };
 
 // API Functions for Minigroups
 export const minigroupApi = {
     // Get all minigroups in a category
     getMinigroupsByCategory: (id_categoria: number) =>
-        axios.get(`${API_BASE_URL}/minigrupos/categoria/${id_categoria}`),
+        axios.get(`${API_BASE_URL}minigrupos/categoria/${id_categoria}`),
     
     // Create a new minigroup
-    createMinigroup: (id_categoria: number, minigroup: any) =>
-        axios.post(`${API_BASE_URL}/minigrupos`, { ...minigroup, id_categoria }),
+    createMinigroup: (id_categoria: number, minigroup: { idCategoria: number, nombreGrupo: string, estudiantes: string[] }) =>
+        axios.post(`${API_BASE_URL}minigrupos`, minigroup),
     
     // Update an existing minigroup
-    updateMinigroup: (id_categoria: number, id_minigrupo: number, data: any) =>
-        axios.patch(`${API_BASE_URL}/minigrupos/${id_minigrupo}`, data),
+    updateMinigroup: (id_categoria: number, id_minigrupo: number, data: { nombre?: string, estudiantes?: string[] }) =>
+        axios.patch(`${API_BASE_URL}minigrupos/${id_minigrupo}`, data),
     
     // Delete a minigroup
     deleteMinigroup: (id_categoria: number, id_minigrupo: number) =>
-        axios.delete(`${API_BASE_URL}/minigrupos/${id_minigrupo}`),
+        axios.delete(`${API_BASE_URL}minigrupos/${id_minigrupo}`),
     
     // Student management in minigroups
     addStudentToMinigroup: (categoryId: string, groupId: string, carnet: string) =>
@@ -84,6 +85,6 @@ export const convertApiMinigroup = (apiMinigroup: Minigroup) => ({
 });
 
 export const convertApiCategory = (apiCategory: Category) => ({
-    id: apiCategory.id,
-    name: apiCategory.nombre
+    id: apiCategory.id_categoria.toString(),
+    nombre: apiCategory.nombre_categoria
 });

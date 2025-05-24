@@ -29,20 +29,21 @@ export interface CreateNewsDTO {
 const BASE_URL = `${API_BASE_URL}/professor`;
 
 export const getNews = async (id_grupo: number) => {
-  const response = await axios.get(`${API_BASE_URL}/noticia/grupo/${id_grupo}`);
+  const response = await axios.get(`${API_BASE_URL}Noticia/grupo/${id_grupo}`);
   return response.data;
 };
 
 export const createNews = async (news: any) => {
-  const response = await axios.post(`${API_BASE_URL}/noticia`, news);
+  const response = await axios.post(`${API_BASE_URL}Noticia`, news);
   return response.data;
 };
 
-export const updateNews = async (id: number, news: any) => {
-  const response = await axios.patch(`${API_BASE_URL}/noticia/${id}`, news);
+export const updateNews = async (id_noticia: number, news: any) => {
+  console.log('Updating news with ID:', id_noticia, 'and data:', news);
+  const response = await axios.patch(`${API_BASE_URL}Noticia/${id_noticia}`, news);
   return response.data;
 };
 
 export const deleteNews = async (id: number) => {
-  await axios.delete(`${API_BASE_URL}/noticia/${id}`);
+  await axios.delete(`${API_BASE_URL}Noticia/${id}`);
 };

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRouter } from 'next/router'
-import { useAuthStore } from '../../../../../stores/authStore'
+import { useAuthStore } from '@/stores/authStore'
 import Header from '@/components/global/Header'
 import { ParsedUrlQueryInput } from 'querystring'
 
@@ -16,6 +16,7 @@ import DocumentViewer from '@/components/student/DocumentViewer'
 import StudentEvaluations from '@/components/student/StudentEvaluations'
 import NewsViewer from '@/components/student/NewsViewer'
 import EvaluationManager from '@/components/professor/EvaluationManager'
+import ReportNotesStudent from '@/components/student/ReportNotesStudent'
 
 // Reuse the tabs from student/professor dashboards
 const professorTabs = [
@@ -31,6 +32,7 @@ const studentTabs = [
   { key: 'documents', label: 'Documentos' },
   { key: 'evaluations', label: 'Evaluaciones' },
   { key: 'news', label: 'Noticias' },
+  { key: 'notes', label: 'Reporte Notas' },
 ]
 
 interface CourseQuery {
@@ -38,12 +40,13 @@ interface CourseQuery {
   code?: string
   group?: string
   tab?: string
+  id_curso?: string
   tabEv?: 'rubrics' | 'assignments' | 'submissions'
 }
 
 const CoursePage = () => {
   const router = useRouter()
-  const { semester, code, group, tab, tabEv = 'rubrics' } = router.query as CourseQuery
+  const { semester, code, group, id_curso, tab, tabEv = 'rubrics' } = router.query as CourseQuery
   const user = useAuthStore(state => state.user)
 
   if (!user) return null
@@ -52,18 +55,12 @@ const CoursePage = () => {
   
   const handleTabChange = (newTab: string) => {
     const query: ParsedUrlQueryInput = {
-      semester: semester as string,
-      code: code as string,
-      group: group as string,
-      tab: newTab
-    }
-
-    if (newTab === 'rubrics') {
-      query.tabEv = 'rubrics'
+      tab: newTab,
+      //tabEv // Preserve the current tabEv
     }
 
     router.push({ 
-      pathname: `/courses/[semester]/[code]/[group]/[tab]`,
+      pathname: `/courses/${semester}/${code}/${group}/${id_curso}/${newTab}`,
       query 
     })
   }
@@ -71,20 +68,21 @@ const CoursePage = () => {
   const renderContent = () => {
     if (user.role === 'professor') {
       switch (tab) {
-        case 'documents': return <DocumentManager />
-        case 'rubrics': return <EvaluationManager />
-        case 'news': return <NewsEditor />
-        case 'notes': return <ReportNotes />
-        case 'students': return <ReportStudents />
-        case 'groups': return <GroupManager />
-        default: return null
+        case 'documents': return <DocumentManager courseId={id_curso} groupId={group} />
+        case 'rubrics': return <EvaluationManager groupId={id_curso} />
+        case 'news': return <NewsEditor groupId={id_curso} />
+        case 'notes': return <ReportNotes courseId={code} groupId={id_curso} />
+        case 'students': return <ReportStudents groupId={id_curso} />
+        case 'groups': return <GroupManager courseId={id_curso} />
+        default: return <div className="text-center">Página no encontrada</div> // Handle invalid tabs
       }
     } else {
       switch (tab) {
         case 'documents': return <DocumentViewer />
         case 'evaluations': return <StudentEvaluations />
         case 'news': return <NewsViewer />
-        default: return null
+        case 'notes': return <ReportNotesStudent /> 
+        default: return <div className="text-center">Página no encontrada</div> // Handle invalid tabs
       }
     }
   }

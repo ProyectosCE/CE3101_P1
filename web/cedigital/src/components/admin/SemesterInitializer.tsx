@@ -1,7 +1,7 @@
 // src/components/admin/SemesterInitializer.tsx
 import React, { useState } from 'react'
 import ExcelUploader from './ExcelUploader'
-import { getSemestres, uploadSemestresExcel } from '@/Functions/semestresApi'
+import { getSemestres, uploadSemestresExcel, createSemestre, toggleSemestre, deleteSemestre } from '@/Functions/semestresApi'
 
 interface Semester {
   id: string
@@ -10,51 +10,91 @@ interface Semester {
   active: boolean
 }
 
+interface ApiSemester {
+  id_semestre: string;
+  anio: string | number;
+  periodo: string;
+  estado: string;
+}
+
 const SemesterInitializer: React.FC = () => {
   const [year, setYear] = useState<number | ''>('')
   const [period, setPeriod] = useState<'1' | '2' | 'V'>('1')
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
+  // Load semesters from API
   React.useEffect(() => {
-    getSemestres().then((data: any) => {
-      const arr = Array.isArray(data) ? data : data.semestres ?? []
-      setSemesters(
-        arr.map((s: any) => ({
-          id: s.id,
-          year: Number(s.anno),
-          period: s.periodo,
-          active: s.estado === 'Activo'
-        }))
-      )
+    getSemestres().then((data: ApiSemester[]) => {
+      setSemesters(data.map((s: ApiSemester) => ({
+        id: s.id_semestre,
+        year: Number(s.anio),
+        period: s.periodo as '1' | '2' | 'V',
+        active: s.estado === 'activo'
+      })))
     }).catch(() => setSemesters([]))
   }, [])
 
-  const createSemester = () => {
+  const createSemester = async () => {
     if (!year) {
       alert('Por favor seleccione un año')
       return
     }
 
-    const newSemester: Semester = {
-      id: `${year}-${period}`,
-      year: year,
-      period: period,
-      active: true
+    try {
+      await createSemestre({
+        anio: year,
+        periodo: period,
+        estado: 'inactivo'
+      })
+      
+      // Refresh list after creation
+      const updatedSemesters = await getSemestres()
+      setSemesters(updatedSemesters.map((s: ApiSemester) => ({
+        id: s.id_semestre,
+        year: Number(s.anio),
+        period: s.periodo as '1' | '2' | 'V',
+        active: s.estado === 'activo'
+      })))
+      
+      setYear('')
+    } catch (err) {
+      alert('Error al crear semestre')
     }
-
-    setSemesters([...semesters, newSemester])
-    setYear('')
   }
 
-  const toggleSemester = (id: string) => {
-    setSemesters(semesters.map(sem => 
-      sem.id === id ? { ...sem, active: !sem.active } : sem
-    ))
+  const toggleSemester = async (id: string) => {
+    try {
+      await toggleSemestre(Number(id))
+      
+      // Refresh list after toggle
+      const updatedSemesters = await getSemestres()
+      setSemesters(updatedSemesters.map((s: ApiSemester) => ({
+        id: s.id_semestre,
+        year: Number(s.anio),
+        period: s.periodo as '1' | '2' | 'V',
+        active: s.estado === 'activo'
+      })))
+    } catch (err) {
+      alert('Error al cambiar estado del semestre')
+    }
   }
 
-  const deleteSemester = (id: string) => {
-    setSemesters(semesters.filter(sem => sem.id !== id))
+  const deleteSemester = async (id: string) => {
+    try {
+      await deleteSemestre(Number(id))
+      
+      // Refresh list after deletion
+      const updatedSemesters = await getSemestres()
+      setSemesters(updatedSemesters.map((s: ApiSemester) => ({
+        id: s.id_semestre,
+        year: Number(s.anio),
+        period: s.periodo as '1' | '2' | 'V',
+        active: s.estado === 'activo'
+      })))
+    } catch (err) {
+      alert('Error al eliminar semestre')
+    }
   }
 
   const handleFileSelect = (file: File) => setSelectedFile(file)
@@ -75,10 +115,10 @@ const SemesterInitializer: React.FC = () => {
         const arr = Array.isArray(data) ? data : data.semestres ?? []
         setSemesters(
           arr.map((s: any) => ({
-            id: s.id,
-            year: Number(s.anno),
+            id: s.id_semestre,
+            year: Number(s.anio),
             period: s.periodo,
-            active: s.estado === 'Activo'
+            active: s.estado === 'activo'
           }))
         )
       })

@@ -5,39 +5,23 @@ import type { Student as GroupStudent } from '@/types/groups';
 
 interface APIStudent {
   carnet: string;
-  cedula: string;
   nombre: string;
+  apellidos: string;
   correo: string;
   telefono: string;
 }
 
-interface StudentsResponse {
-  students: APIStudent[];
-}
-
-const BASE_URL = `${API_BASE_URL}/professor`;
-
 export const getStudentsByCourse = async (courseId: string): Promise<ReportStudent[]> => {
-  const response = await axios.get<StudentsResponse>(`${BASE_URL}/courses/${courseId}/students`);
-  return response.data.students.map(student => ({
+  const response = await axios.get<APIStudent[]>(`${API_BASE_URL}Grupo/Estudiantes/${courseId}`);
+  return response.data.map(student => ({
     carnet: student.carnet,
     email: student.correo,
     phone: student.telefono,
-    name: student.nombre
+    name: `${student.nombre} ${student.apellidos}`
   }));
 };
 
-const convertToGroupStudent = (apiStudent: APIStudent): GroupStudent => ({
-  carnet: apiStudent.carnet,
-  nombre: apiStudent.nombre,
-  apellido1: '',  // Add default values since API doesn't provide these
-  apellido2: ''
-});
 
-export const getAllStudentsByCourse = async (courseId: string): Promise<GroupStudent[]> => {
-  const response = await axios.get<StudentsResponse>(`${BASE_URL}/courses/${courseId}/students`);
-  return response.data.students.map(convertToGroupStudent);
-};
 
 // Obtener todos los estudiantes
 export const getAllStudents = async () => {

@@ -37,17 +37,17 @@ interface EntregasResponse {
 export const entregasApi = {
   // CRUD principal
   getEntregasByEvaluacion: (evaluacionId: number) =>
-    axios.get(`${API_BASE_URL}/entregas?idEvaluacion=${evaluacionId}`),
+    axios.get(`${API_BASE_URL}entregas/evaluacion/${evaluacionId}`),
 
   getEntregaById: (idEntrega: number) =>
-    axios.get(`${API_BASE_URL}/entregas/${idEntrega}`),
+    axios.get(`${API_BASE_URL}entregas/${idEntrega}`),
 
   // Update submission grade and feedback
   updateCalificacion: (entregaId: number, data: {
     calificacion: number;
     comentario?: string;
   }) =>
-    axios.patch(`${API_BASE_URL}/entregas/${entregaId}/calificacion`, data),
+    axios.patch(`${API_BASE_URL}entregas/${entregaId}/calificacion`, data),
 
   // Upload feedback document
   uploadRetroalimentacion: (entregaId: number, file: File, comentario: string) => {

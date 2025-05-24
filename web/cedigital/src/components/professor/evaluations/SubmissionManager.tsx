@@ -70,7 +70,11 @@ const convertEntregaToStudent = (entrega: Entrega): Student => ({
   } : undefined
 });
 
-const SubmissionManager: React.FC = () => {
+interface SubmissionManagerProps {
+  groupId?: string
+}
+
+const SubmissionManager: React.FC<SubmissionManagerProps> = (groupId) => {
   const [rubrics, setRubrics] = useState<Rubric[]>([])
   const [expandedActivity, setExpandedActivity] = useState<string | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
@@ -83,54 +87,44 @@ const SubmissionManager: React.FC = () => {
   }, [])
 
   const loadData = async () => {
-    const [rubricsRes, evaluacionesRes] = await Promise.all([
-      rubrosApi.getRubros(),
-      evaluacionesApi.getEvaluaciones()
+    // Obtener rubros y evaluaciones por separado
+    const [rubrosRes, evaluacionesRes] = await Promise.all([
+      rubrosApi.getRubros(Number(groupId.groupId)),
+      evaluacionesApi.getEvaluaciones(Number(groupId.groupId))
     ]);
 
-    // Transform data to match the desired structure
     const rubricsWithActivities = await Promise.all(
-      rubricsRes.data.rubros.map(async (rubric) => {
-        const activities = await Promise.all(
-          evaluacionesRes.data.evaluaciones
-            .filter(evaluation => evaluation.idRubro === rubric.id)
-            .map(async (evaluation) => {
-              const { data } = await entregasApi.getEntregasByEvaluacion(evaluation.id);
-              
-              // Filter entregas that belong to this evaluation
-              const filteredEntregas = data.entregas.filter(entrega => 
-                entrega.idEvaluacion === evaluation.id
-              );
-              
-              const students: Student[] = filteredEntregas.map(entrega => ({
-                id: entrega.identrega,
-                carnet: entrega.grupal ? entrega.grupo!.idGrupo : entrega.estudiante!.carnet,
-                name: entrega.grupal ? entrega.grupo!.nombreGrupo : entrega.estudiante!.nombre,
-                submission: entrega.entregado ? {
-                  file: entrega.idDocumentoEntrega!,
-                  submittedAt: `${entrega.fechaEntrega}T${entrega.horaEntrega}`
-                } : undefined,
-                grade: entrega.calificacion,
-                feedback: entrega.comentario,
-                published: entrega.calificacionPublicada,
-                group: entrega.grupal ? {
-                  id: entrega.grupo!.idGrupo,
-                  name: entrega.grupo!.nombreGrupo,
-                  members: entrega.grupo!.estudiantes.map(est => ({
-                    carnet: est.carnet,
-                    name: est.nombre
-                  }))
-                } : undefined
-              }));
+      rubrosRes.data.map(async (rubric: any) => {
+        const rubroEvaluaciones = (evaluacionesRes.data || []).find((r: any) => r.id === rubric.id);
+        const evaluaciones = rubroEvaluaciones?.evaluaciones || [];
 
-              return {
-                id: evaluation.id,
-                name: evaluation.nombreRubro,
-                published: false,
-                isGroupWork: evaluation.trabajoGrupal,
-                students
-              };
-            })
+        const activities = await Promise.all(
+          evaluaciones.map(async (evaluation: any) => {
+            const { data } = await entregasApi.getEntregasByEvaluacion(evaluation.id);
+
+            // data es un array de entregas con la nueva estructura
+            const students: Student[] = (data || []).map((entrega: any) => ({
+              id: entrega.idEntrega,
+              carnet: entrega.carnetEstudiante,
+              name: entrega.carnetEstudiante, // No hay nombre, se usa carnet
+              submission: {
+                file: entrega.nombreArchivo,
+                submittedAt: `${entrega.fechaEntrega}T${entrega.horaEntrega}`
+              },
+              grade: undefined,
+              feedback: undefined,
+              published: false,
+              group: undefined
+            }));
+
+            return {
+              id: evaluation.id,
+              name: evaluation.nombre,
+              published: false,
+              isGroupWork: evaluation.trabajoGrupal,
+              students
+            };
+          })
         );
 
         return {

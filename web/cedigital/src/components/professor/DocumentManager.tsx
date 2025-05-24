@@ -1,116 +1,293 @@
 // src/components/professor/DocumentManager.tsx
 import React, { useState, ChangeEvent, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import {
-  FaFolder,
-  FaFolderOpen,
-  FaPlus,
-  FaFileAlt,
-  FaEye,
-  FaEdit,
-  FaTrash,
-  FaTrashAlt,
+  FaFolder, FaFolderOpen, FaPlus, FaFileAlt,
+  FaEye, FaEdit, FaTrash, FaTrashAlt,
 } from 'react-icons/fa'
-import { getFolders, getFilesByFolder } from '@/Functions/Professor/documentsApi'
+import { 
+  getFoldersByGroup, 
+  getFilesByFolder, 
+  downloadFile, 
+  uploadFileToFolder, 
+  deleteFile, 
+  renameFile, 
+  createFolder,
+  deleteFolder 
+} from '@/Functions/Professor/documentsApi'
+import { Folder as ApiFolder } from '@/Functions/Professor/documentsApi'
+import JsFileDownloader from 'js-file-downloader'
+import { useAuthStore } from '@/stores/authStore'
 
 interface ApiFile {
-  id: string
-  idCarpeta: string
-  nombre: string
-  fecha: string
-  tamano: string
+  id_documento: number
+  nombre_archivo: string
+  size: number
+  fecha_subida: string
+  id_carpeta: number
 }
 
 interface Folder {
   id: string
   nombre: string
+  cedula: string | null // Changed from string | undefined to string | null
 }
 
-const DocumentManager: React.FC = () => {
+interface DocumentManagerProps {
+  courseId?: string
+  groupId?: string
+}
+
+const DocumentManager: React.FC<DocumentManagerProps> = ({ courseId, groupId }) => {
+  const router = useRouter()
+  const { id_curso, group } = router.query
+  const currentGroupId = groupId || group
   const [folders, setFolders] = useState<Folder[]>([])
   const [activeFolder, setActiveFolder] = useState<string>('')
-  const [loading, setLoading] = useState(true)
+  const [foldersLoading, setFoldersLoading] = useState(true)
+  const [filesLoading, setFilesLoading] = useState(false)
   const [files, setFiles] = useState<ApiFile[]>([])
+  const [filesError, setFilesError] = useState<string | null>(null)
+  const { user } = useAuthStore()
 
-  // Cargar carpetas al iniciar
   useEffect(() => {
-    setLoading(true)
-    getFolders()
-      .then(response => {
-        setFolders(response.carpetas)
-        if (response.carpetas.length > 0) {
-          setActiveFolder(response.carpetas[0].id)
+    const currentCourseId = courseId || id_curso
+    console.log('DocumentManager mounted, courseId:', courseId)
+    console.log('id_curso from router:', id_curso)
+    console.log('currentCourseId:', currentCourseId)
+
+    if (!currentCourseId) {
+      console.warn('No courseId available')
+      return
+    }
+
+    const loadFolders = async () => {
+      try {
+        setFoldersLoading(true)
+        console.log('Calling API with courseId:', currentCourseId)
+        const response = await getFoldersByGroup(currentCourseId)
+        console.log('API Response:', response)
+        
+        if (Array.isArray(response)) {
+          const mappedFolders = response.map(folder => ({
+            id: folder.id_carpeta.toString(),
+            nombre: folder.nombre,
+            cedula: folder.cedula_profesor || null // Changed from string | undefined to string | null
+          }))
+          console.log('Mapped folders:', mappedFolders)
+          setFolders(mappedFolders)
+          if (mappedFolders.length > 0) {
+            setActiveFolder(mappedFolders[0].id)
+          }
+        } else {
+          console.error('Unexpected API response format:', response)
+          setFolders([])
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error loading folders:', error)
         setFolders([])
-      })
-      .finally(() => setLoading(false))
-  }, [])
+      } finally {
+        setFoldersLoading(false)
+      }
+    }
+
+    loadFolders()
+  }, [courseId, id_curso])
 
   // Cargar archivos cuando cambie la carpeta activa
   useEffect(() => {
     if (!activeFolder) return
 
-    setLoading(true)
-    getFilesByFolder(activeFolder)
+    setFilesLoading(true)
+    setFilesError(null)
+    getFilesByFolder(parseInt(activeFolder))
       .then(response => {
-        // Filter files by active folder ID
-        const filesInFolder = response.archivos.filter(file => file.idCarpeta === activeFolder)
-        setFiles(filesInFolder)
+        if (response.error) {
+          setFilesError(response.error)
+          setFiles([])
+          return
+        }
+        setFiles(response.data || [])
       })
-      .catch(error => {
-        console.error('Error loading files:', error)
-        setFiles([])
-      })
-      .finally(() => setLoading(false))
+      .finally(() => setFilesLoading(false))
   }, [activeFolder])
 
   // Crear nueva carpeta personalizada
-  const handleNewFolder = () => {
+  const handleNewFolder = async () => {
     const name = window.prompt('Nombre de la nueva carpeta:')
-    if (name && !folders.find(f => f.nombre === name)) {
-      // setCustomFolders(prev => [...prev, name])
-      // setFilesByFolder(prev => ({ ...prev, [name]: [] }))
-      setActiveFolder(name)
+    if (!name || folders.find(f => f.nombre === name)) return
+
+    const currentCourseId = courseId || id_curso
+    if (!currentCourseId || !currentGroupId) {
+      alert('No hay un curso o grupo seleccionado')
+      return
+    }
+
+    if (!user?.username) {
+      alert('No se encontró la identificación del profesor')
+      return
+    }
+
+    try {
+      setFoldersLoading(true)
+      const newFolder = await createFolder(
+        name, 
+        parseInt(currentGroupId as string),
+        user.username
+      )
+      setFolders(prev => [...prev, {
+        id: newFolder.id_carpeta.toString(),
+        nombre: newFolder.nombre,
+        cedula: newFolder.cedula_profesor || null
+      }])
+      setActiveFolder(newFolder.id_carpeta.toString())
+    } catch (error) {
+      console.error('Error creating folder:', error)
+      alert('Error al crear la carpeta')
+    } finally {
+      setFoldersLoading(false)
     }
   }
 
   // Eliminar carpeta personalizada
-  const handleDeleteFolder = (folder: string) => {
-    if (!confirm(`Eliminar carpeta "${folder}" y todo su contenido?`)) return
+  const handleDeleteFolder = async (id: string) => {
+    const folder = folders.find(f => f.id === id)
+    if (!folder || !folder.cedula) return
     
-    // Si eliminamos la carpeta activa, volvemos a la primera disponible
-    if (activeFolder === folder && folders.length > 0) {
-      setActiveFolder(folders[0].id)
+    if (!confirm(`Eliminar carpeta "${folder.nombre}" y todo su contenido?`)) return
+
+    try {
+      setFoldersLoading(true)
+      await deleteFolder(parseInt(id))
+      
+      // Recargar la lista de carpetas
+      const currentCourseId = courseId || id_curso
+      if (currentCourseId) {
+        const response = await getFoldersByGroup(currentCourseId)
+        const mappedFolders = response.map(folder => ({
+          id: folder.id_carpeta.toString(),
+          nombre: folder.nombre,
+          cedula: folder.cedula_profesor
+        }))
+        setFolders(mappedFolders)
+        
+        // Si eliminamos la carpeta activa, volvemos a la primera disponible
+        if (id === activeFolder && mappedFolders.length > 0) {
+          setActiveFolder(mappedFolders[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error)
+      alert('Error al eliminar la carpeta')
+    } finally {
+      setFoldersLoading(false)
     }
   }
 
   // Subir archivo
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || !activeFolder) return
+    
     const file = e.target.files[0]
-    // TODO: Implement file upload
-    e.target.value = ''
+    try {
+      setFilesLoading(true)
+      const uploadedFile = await uploadFileToFolder(parseInt(activeFolder), file)
+      setFiles(prev => [...prev, uploadedFile])
+      console.log('File uploaded successfully:', uploadedFile)
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      alert('Error al subir el archivo')
+    } finally {
+      setFilesLoading(false)
+      e.target.value = '' // Reset input
+    }
   }
 
   // Ver y editar son placeholders
-  const handleView = (file: ApiFile) => alert(`Ver: ${file.nombre}`)
-  const handleEdit = (file: ApiFile) => {
-    const newName = window.prompt('Nuevo nombre:', file.nombre)
+  const handleView = async (file: ApiFile) => {
+    try {
+      const { url } = await downloadFile(file.id_documento);
+      
+      // Use the original filename from the file object
+      const filename = file.nombre_archivo;
+      
+      if (filename.toLowerCase().endsWith('.pdf') || 
+          filename.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) {
+        window.open(url, '_blank')?.focus();
+      } else {
+        new JsFileDownloader({ 
+          url,
+          filename,
+          forceDesktopMode: true,
+          timeout: 30000,
+          autoStart: true,
+          headers: {
+            'Accept': '*/*'
+          }
+        })
+        .then(() => {
+          console.log('Download complete');
+        })
+        .catch((error) => {
+          console.error('Download error:', error);
+          alert('Error al descargar el archivo');
+        });
+      }
+    } catch (error) {
+      console.error('Error handling file:', error);
+      alert('Error al procesar el archivo');
+    }
+  }
+  const handleEdit = async (file: ApiFile) => {
+    // Extract base name and extension
+    const lastDotIndex = file.nombre_archivo.lastIndexOf('.');
+    const extension = lastDotIndex >= 0 ? file.nombre_archivo.slice(lastDotIndex) : '';
+    const currentName = lastDotIndex >= 0 ? file.nombre_archivo.slice(0, lastDotIndex) : file.nombre_archivo;
+
+    const newName = window.prompt('Nuevo nombre:', currentName)
     if (!newName) return
-    // TODO: Implement rename
+
+    try {
+      setFilesLoading(true)
+      // Append the original extension to the new name
+      const fullNewName = newName + extension
+      const updatedFile = await renameFile(file.id_documento, fullNewName)
+      setFiles(prev => prev.map(f => 
+        f.id_documento === file.id_documento ? updatedFile : f
+      ))
+    } catch (error) {
+      console.error('Error renaming file:', error)
+      alert('Error al renombrar el archivo')
+    } finally {
+      setFilesLoading(false)
+    }
   }
 
-  const handleDeleteFile = (fileId: string) => {
+  const handleDeleteFile = async (fileId: number) => {
     if (!confirm('¿Eliminar este documento?')) return
-    // TODO: Implement delete
+
+    try {
+      setFilesLoading(true)
+      await deleteFile(fileId)
+      setFiles(prev => prev.filter(f => f.id_documento !== fileId))
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      alert('Error al eliminar el archivo')
+    } finally {
+      setFilesLoading(false)
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
   }
 
   return (
     <div>
       <h2 className="mb-4">Gestión de Documentos</h2>
-      {loading ? (
+      {foldersLoading ? (
         <div className="text-center">Cargando...</div>
       ) : (
         <div className="row">
@@ -143,13 +320,15 @@ const DocumentManager: React.FC = () => {
                     )}
                     {f.nombre}
                   </span>
-                  <FaTrashAlt
-                    style={{ cursor: 'pointer' }}
-                    onClick={e => {
-                      e.stopPropagation()
-                      handleDeleteFolder(f.nombre)
-                    }}
-                  />
+                  {f.cedula && (
+                    <FaTrashAlt
+                      style={{ cursor: 'pointer' }}
+                      onClick={e => {
+                        e.stopPropagation()
+                        handleDeleteFolder(f.id)
+                      }}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -157,62 +336,75 @@ const DocumentManager: React.FC = () => {
 
           {/* Área de documentos */}
           <div className="col-md-9">
-            <div className="mb-3 d-flex align-items-center">
-              <label className="btn btn-primary mb-0 me-2">
-                <FaFileAlt className="me-1" /> Subir Documento
-                <input type="file" hidden onChange={handleFileChange} />
-              </label>
-              <span className="text-muted">
-                Carpeta: <strong>{folders.find(f => f.id === activeFolder)?.nombre}</strong>
-              </span>
-            </div>
+            {filesError ? (
+              <div className="alert alert-danger">{filesError}</div>
+            ) : (
+              <>
+                <div className="mb-3 d-flex align-items-center">
+                  <label className="btn btn-primary mb-0 me-2">
+                    <FaFileAlt className="me-1" /> Subir Documento
+                    <input type="file" hidden onChange={handleFileChange} />
+                  </label>
+                  <span className="text-muted">
+                    Carpeta: <strong>{folders.find(f => f.id === activeFolder)?.nombre}</strong>
+                  </span>
+                </div>
 
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Fecha</th>
-                  <th>Tamaño</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {files.map(file => (
-                  <tr key={file.id}>
-                    <td>{file.nombre}</td>
-                    <td>{new Date(file.fecha).toLocaleDateString()}</td>
-                    <td>{file.tamano}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-info me-1"
-                        onClick={() => handleView(file)}
-                      >
-                        <FaEye />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-secondary me-1"
-                        onClick={() => handleEdit(file)}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteFile(file.id)}
-                      >
-                        <FaTrash />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {files.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="text-center text-muted">
-                      Sin documentos
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                <table className="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Fecha</th>
+                      <th>Tamaño</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filesLoading ? (
+                      <tr>
+                        <td colSpan={4} className="text-center">
+                          <span className="text-muted">Cargando archivos...</span>
+                        </td>
+                      </tr>
+                    ) : files.length > 0 ? (
+                      files.map(file => (
+                        <tr key={file.id_documento}>
+                          <td>{file.nombre_archivo}</td>
+                          <td>{new Date(file.fecha_subida).toLocaleDateString()}</td>
+                          <td>{formatFileSize(file.size)}</td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-info me-1"
+                              onClick={() => handleView(file)}
+                            >
+                              <FaEye />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-secondary me-1"
+                              onClick={() => handleEdit(file)}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeleteFile(file.id_documento)}
+                            >
+                              <FaTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="text-center text-muted">
+                          Sin documentos
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </>
+            )}
           </div>
         </div>
       )}
