@@ -16,6 +16,7 @@ async function apiRequest<T = any>(
     return response.data;
 }
 
+// Crear curso
 export function createCurso(curso: {
     codigo: string;
     nombre: string;
@@ -25,6 +26,7 @@ export function createCurso(curso: {
     return apiRequest('post', '/cursos', curso);
 }
 
+// Actualizar curso
 export function updateCurso(id: string, data: Partial<{
     codigo: string;
     nombre: string;
@@ -34,10 +36,12 @@ export function updateCurso(id: string, data: Partial<{
     return apiRequest('patch', `/cursos/${id}`, data);
 }
 
+// Activar/desactivar curso
 export function toggleCurso(id: string) {
     return apiRequest('patch', `/cursos/${id}/toggle`);
 }
 
+// Subir cursos por Excel
 export function uploadCursosExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -46,6 +50,12 @@ export function uploadCursosExcel(file: File) {
     });
 }
 
+// Obtener todos los cursos
 export function getCursos() {
     return apiRequest('get', '/cursos');
+}
+
+// Eliminar curso
+export function deleteCurso(id: string) {
+    return apiRequest('delete', `/cursos/${id}`);
 }

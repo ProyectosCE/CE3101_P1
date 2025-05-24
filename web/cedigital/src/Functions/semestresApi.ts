@@ -1,31 +1,46 @@
 import { API_BASE_URL } from '@/stores/api';
 import axios from 'axios';
 
-async function apiRequest<T = any>(
-    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
-    url: string,
-    data?: any,
-    config?: any
-): Promise<T> {
-    const response = await axios({
-        method,
-        url: `${API_BASE_URL}${url}`,
-        data,
-        ...config,
-    });
-    return response.data;
-}
-
+// Obtener todos los semestres
 export function getSemestres() {
-    return apiRequest('get', '/semestres');
+    return axios.get(`${API_BASE_URL}/semestre`).then(res => res.data);
 }
 
+// Obtener semestre por ID
+export function getSemestreById(id: number) {
+    return axios.get(`${API_BASE_URL}/semestre/${id}`).then(res => res.data);
+}
+
+// Crear semestre
+export function createSemestre(data: { anio: number; periodo: string; estado?: string }) {
+    return axios.post(`${API_BASE_URL}/semestre`, data).then(res => res.data);
+}
+
+// Actualizar semestre
+export function updateSemestre(id: number, data: { anio?: number; periodo?: string; estado?: string }) {
+    return axios.patch(`${API_BASE_URL}/semestre/${id}`, data).then(res => res.data);
+}
+
+// Eliminar semestre
+export function deleteSemestre(id: number) {
+    return axios.delete(`${API_BASE_URL}/semestre/${id}`).then(res => res.data);
+}
+
+// Activar/desactivar semestre
+export function toggleSemestre(id: number) {
+    return axios.patch(`${API_BASE_URL}/semestre/${id}/toggle`).then(res => res.data);
+}
+
+// Subir Excel para inicializar semestre
 export function uploadSemestresExcel(file: File) {
     const formData = new FormData();
-    formData.append('file', file);
-    return apiRequest('post', '/semestres/upload-excel', formData, {
+    formData.append('archivoExcel', file);
+    return axios.post(`${API_BASE_URL}/iniciarsemestre/upload_excel`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
 }
 
-// Puedes agregar create, update, toggle, etc. aquí si el backend los soporta.
+// Inicializar semestre (desde datos ya procesados)
+export function inicializarSemestre(data: any) {
+    return axios.post(`${API_BASE_URL}/iniciarsemestre/inicializar`, data);
+}

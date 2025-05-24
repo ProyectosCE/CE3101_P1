@@ -67,7 +67,7 @@ const SemesterInitializer: React.FC = () => {
     try {
       const res = await uploadSemestresExcel(selectedFile)
       alert(
-        `Importación completada.\nImportados: ${res.importedCount ?? '-'}\nErrores: ${res.errors?.length || 0}`
+        `Importación completada.}`
       )
       setSelectedFile(null)
       // Recargar semestres

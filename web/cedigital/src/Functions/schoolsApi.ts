@@ -16,6 +16,7 @@ async function apiRequest<T = any>(
     return response.data;
 }
 
+// Crear escuela
 export function createEscuela(escuela: {
     codigo: string;
     nombre: string;
@@ -23,6 +24,7 @@ export function createEscuela(escuela: {
     return apiRequest('post', '/escuelas', escuela);
 }
 
+// Actualizar escuela
 export function updateEscuela(id: string, data: Partial<{
     codigo: string;
     nombre: string;
@@ -30,10 +32,12 @@ export function updateEscuela(id: string, data: Partial<{
     return apiRequest('patch', `/escuelas/${id}`, data);
 }
 
+// Activar/desactivar escuela
 export function toggleEscuela(id: string) {
     return apiRequest('patch', `/escuelas/${id}/toggle`);
 }
 
+// Subir escuelas por Excel
 export function uploadEscuelasExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -42,6 +46,12 @@ export function uploadEscuelasExcel(file: File) {
     });
 }
 
+// Obtener todas las escuelas
 export function getEscuelas() {
     return apiRequest('get', '/escuelas');
+}
+
+// Eliminar escuela
+export function deleteEscuela(id: string) {
+    return apiRequest('delete', `/escuelas/${id}`);
 }

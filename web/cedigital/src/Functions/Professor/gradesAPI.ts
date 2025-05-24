@@ -28,7 +28,10 @@ interface GradesResponse {
 
 const BASE_URL = `${API_BASE_URL}/professor`;
 
-export const getGrades = async (courseId: string): Promise<StudentGrades[]> => {
-  const response = await axios.get<GradesResponse>(`${BASE_URL}/courses/${courseId}/grades`);
-  return response.data.calificaciones;
+// Obtener notas por grupo (curso y grupo)
+export const getGrades = async (codigo_curso: string, id_grupo: number) => {
+  const response = await axios.get(`${API_BASE_URL}/calificacion`, {
+    params: { codigo_curso, id_grupo }
+  });
+  return response.data;
 };

@@ -28,21 +28,21 @@ export interface CreateNewsDTO {
 
 const BASE_URL = `${API_BASE_URL}/professor`;
 
-export const getNews = async (): Promise<APINewsItem[]> => {
-  const response = await axios.get<NewsResponse>(`${BASE_URL}/news`);
-  return response.data.noticias;
-};
-
-export const createNews = async (news: CreateNewsDTO) => {
-  const response = await axios.post(`${BASE_URL}/news`, news);
+export const getNews = async (id_grupo: number) => {
+  const response = await axios.get(`${API_BASE_URL}/noticia/grupo/${id_grupo}`);
   return response.data;
 };
 
-export const updateNews = async (id: string, news: Partial<CreateNewsDTO>) => {
-  const response = await axios.patch(`${BASE_URL}/news/${id}`, news);
+export const createNews = async (news: any) => {
+  const response = await axios.post(`${API_BASE_URL}/noticia`, news);
   return response.data;
 };
 
-export const deleteNews = async (id: string) => {
-  await axios.delete(`${BASE_URL}/news/${id}`);
+export const updateNews = async (id: number, news: any) => {
+  const response = await axios.patch(`${API_BASE_URL}/noticia/${id}`, news);
+  return response.data;
+};
+
+export const deleteNews = async (id: number) => {
+  await axios.delete(`${API_BASE_URL}/noticia/${id}`);
 };

@@ -1,50 +1,52 @@
 import { API_BASE_URL } from '@/stores/api';
 import axios from 'axios';
 
-interface Folder {
-    id: string;
+// Tipos alineados con backend
+export interface Folder {
+    id_carpeta: number;
     nombre: string;
+    id_grupo: number;
+    cedula_profesor?: string;
+}
+export interface File {
+    id_documento: number;
+    nombre_archivo: string;
+    size: number;
+    fecha_subida: string;
+    id_carpeta: number;
 }
 
-interface File {
-    id: string;
-    idCarpeta: string;
-    nombre: string;
-    fecha: string;
-    tamano: string;
+// CRUD Carpetas
+export function getFoldersByGroup(id_grupo: number) {
+    return axios.get(`${API_BASE_URL}/carpeta/grupo/${id_grupo}`).then(res => res.data);
+}
+export function getFolderById(id_carpeta: number) {
+    return axios.get(`${API_BASE_URL}/carpeta/${id_carpeta}`).then(res => res.data);
+}
+export function createFolder(id_grupo: number, cedula_profesor: string, nombre: string) {
+    return axios.post(`${API_BASE_URL}/carpeta/${id_grupo}/${cedula_profesor}`, { nombre });
+}
+export function updateFolder(id_carpeta: number, nombre: string) {
+    return axios.patch(`${API_BASE_URL}/carpeta/${id_carpeta}`, { nombre });
+}
+export function deleteFolder(id_carpeta: number) {
+    return axios.delete(`${API_BASE_URL}/carpeta/${id_carpeta}`);
 }
 
-interface FoldersResponse {
-    carpetas: Folder[];
+// CRUD Archivos
+export function getFilesByFolder(id_carpeta: number) {
+    return axios.get(`${API_BASE_URL}/documento/${id_carpeta}`).then(res => res.data);
 }
-
-interface FilesResponse {
-    archivos: File[];
-}
-
-async function apiRequest<T = any>(
-    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
-    url: string,
-    data?: any,
-    config?: any
-): Promise<T> {
-    const response = await axios({
-        method,
-        url: `${API_BASE_URL}${url}`,
-        data,
-        ...config,
+export function uploadFileToFolder(id_carpeta: number, file: File) {
+    const formData = new FormData();
+    formData.append('archivo', file as any);
+    return axios.post(`${API_BASE_URL}/documento/upload/${id_carpeta}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return response.data;
 }
-
-// Obtener todas las carpetas
-export function getFolders(): Promise<FoldersResponse> {
-    return apiRequest('get', '/profesor/carpetas');
+export function renameFile(id_documento: number, newName: string) {
+    return axios.patch(`${API_BASE_URL}/documento/${id_documento}`, { nombre: newName });
 }
-
-// Obtener archivos de una carpeta específica
-export function getFilesByFolder(folderId: string): Promise<FilesResponse> {
-    return apiRequest('get', `/profesor/carpetas/${folderId}/archivos`);
+export function deleteFile(id_documento: number) {
+    return axios.delete(`${API_BASE_URL}/documento/${id_documento}`);
 }
-
-// TODO: Agregar más funciones según se necesiten (crear carpeta, subir archivo, etc.)
