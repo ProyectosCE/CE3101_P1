@@ -117,6 +117,114 @@ namespace CEDigital_api.Controllers.Sql
             }
         }
 
+        // POST : api/documentos/evaluaciones/
+        [HttpPost("evaluaciones")]
+        public async Task<IActionResult> SubirDocumentoEvaluacion(IFormFile archivo, [FromQuery] string id_semestre, [FromQuery] string codigo_curso, [FromQuery] int id_grupo)
+        {
+            if (archivo == null || archivo.Length == 0)
+                return BadRequest("Archivo inválido.");
+
+            var semestreParts = id_semestre.Split('-');
+            if (semestreParts.Length != 2 || !int.TryParse(semestreParts[1], out var year))
+                return BadRequest("Formato de semestre inválido.");
+
+            var periodo = semestreParts[0];
+            var semestreEntity = await _context.Semestre
+                .FirstOrDefaultAsync(s => s.periodo == periodo && s.anio == year);
+
+            if (semestreEntity == null)
+                return NotFound("Semestre no encontrado.");
+
+            try
+            {
+                var rutaArchivo = Path.Combine(
+                    _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
+                    "Archivos",
+                    $"Semestre_{semestreEntity.id_semestre}",
+                    codigo_curso,
+                    $"Grupo_{id_grupo}",
+                    "Evaluaciones"
+                );
+
+                Directory.CreateDirectory(rutaArchivo);
+
+                var rutaCompleta = Path.Combine(rutaArchivo, archivo.FileName);
+                using var stream = System.IO.File.Create(rutaCompleta);
+                await archivo.CopyToAsync(stream);
+
+                var nuevoDocumento = new Documento
+                {
+                    nombre_archivo = archivo.FileName,
+                    size = (float)archivo.Length,
+                    fecha_subida = DateTime.UtcNow,
+                    id_carpeta = null // Evaluaciones do not belong to a specific folder
+                };
+
+                _context.Documento.Add(nuevoDocumento);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { mensaje = "Archivo de evaluación subido correctamente.", id_documento = nuevoDocumento.id_documento });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al guardar el archivo: {ex.Message}");
+            }
+        }
+
+        // POST : api/documentos/entregas/
+        [HttpPost("entregas")]
+        public async Task<IActionResult> SubirDocumentoEntrega(IFormFile archivo, [FromQuery] string id_semestre, [FromQuery] string codigo_curso, [FromQuery] int id_grupo)
+        {
+            if (archivo == null || archivo.Length == 0)
+                return BadRequest("Archivo inválido.");
+
+            var semestreParts = id_semestre.Split('-');
+            if (semestreParts.Length != 2 || !int.TryParse(semestreParts[1], out var year))
+                return BadRequest("Formato de semestre inválido.");
+
+            var periodo = semestreParts[0];
+            var semestreEntity = await _context.Semestre
+                .FirstOrDefaultAsync(s => s.periodo == periodo && s.anio == year);
+
+            if (semestreEntity == null)
+                return NotFound("Semestre no encontrado.");
+
+            try
+            {
+                var rutaArchivo = Path.Combine(
+                    _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
+                    "Archivos",
+                    $"Semestre_{semestreEntity.id_semestre}",
+                    codigo_curso,
+                    $"Grupo_{id_grupo}",
+                    "Entregas"
+                );
+
+                Directory.CreateDirectory(rutaArchivo);
+
+                var rutaCompleta = Path.Combine(rutaArchivo, archivo.FileName);
+                using var stream = System.IO.File.Create(rutaCompleta);
+                await archivo.CopyToAsync(stream);
+
+                var nuevoDocumento = new Documento
+                {
+                    nombre_archivo = archivo.FileName,
+                    size = (float)archivo.Length,
+                    fecha_subida = DateTime.UtcNow,
+                    id_carpeta = null // Entregas do not belong to a specific folder
+                };
+
+                _context.Documento.Add(nuevoDocumento);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { mensaje = "Archivo de entrega subido correctamente.", id_documento = nuevoDocumento.id_documento });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al guardar el archivo: {ex.Message}");
+            }
+        }
+
         // DELETE : api/documentos/{id_documento} 
         [HttpDelete("{id_documento}")]
         public async Task<IActionResult> EliminarDocumento(int id_documento)
@@ -229,6 +337,49 @@ namespace CEDigital_api.Controllers.Sql
             {
                 return StatusCode(500, $"Error al renombrar el archivo: {ex.Message}");
             }
+        }
+
+        // GET : api/documentos/evaluaciones/{id_documento}
+        [HttpGet("evaluaciones/{id_documento}")]
+        public async Task<IActionResult> DescargarDocumentoEvaluacion(
+            int id_documento, 
+            [FromQuery] string id_semestre, 
+            [FromQuery] string id_curso, 
+            [FromQuery] string id_grupo,
+            [FromQuery] string evaluacion)
+        {
+            var documento = await _context.Documento
+                .FirstOrDefaultAsync(d => d.id_documento == id_documento);
+
+            if (documento == null)
+                return NotFound("Documento no encontrado.");
+
+            var semestreParts = id_semestre.Split('-');
+            if (semestreParts.Length != 2 || !int.TryParse(semestreParts[1], out var year))
+                return BadRequest("Formato de semestre inválido.");
+
+            var periodo = semestreParts[0];
+            var semestreEntity = await _context.Semestre
+                .FirstOrDefaultAsync(s => s.periodo == periodo && s.anio == year);
+
+            if (semestreEntity == null)
+                return NotFound("Semestre no encontrado.");
+
+            var rutaArchivo = Path.Combine(
+                _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"),
+                "Archivos",
+                $"Semestre_{semestreEntity.id_semestre}",
+                id_curso,
+                id_grupo,
+                evaluacion,
+                documento.nombre_archivo
+            );
+
+            if (!System.IO.File.Exists(rutaArchivo))
+                return NotFound("Archivo no encontrado en el sistema.");
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(rutaArchivo);
+            return File(bytes, "application/octet-stream", documento.nombre_archivo);
         }
     }
 

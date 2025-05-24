@@ -17,13 +17,13 @@ namespace CEDigital_api.Controllers.Mongo
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var (success, role, message, id, carnet) = await _authService.LoginAsync(request.Correo, request.Password);
+            var (success, role, message, id, carnet, isAdmin) = await _authService.LoginAsync(request.Correo, request.Password);
             if (!success)
             {
                 return Unauthorized(new { message });
             }
 
-            return Ok(new { message, role, id, carnet });
+            return Ok(new { message, role, admin = isAdmin, id, carnet });
         }
     }
 

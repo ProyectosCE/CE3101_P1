@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace CEDigital_api.Models.Sql
 {
@@ -11,7 +12,9 @@ namespace CEDigital_api.Models.Sql
         public DateTime fecha_subida { get; set; }
 
         // Foreign Keys
-        public int id_carpeta { get; set; }
+        public int? id_carpeta { get; set; }
+
+        [JsonIgnore]
         public Carpeta? carpeta { get; set; }
 
     }

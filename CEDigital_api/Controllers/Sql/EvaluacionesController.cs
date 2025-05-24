@@ -41,8 +41,8 @@ namespace CEDigital_api.Controllers
                     horaEntrega = e.fecha_entrega.ToString("HH:mm"),
                     idRubro = e.id_rubro,
                     descripcion = e.tipo,
-                    idDocumentoInstrucciones = e.archivo_especificacion,
-                    trabajoGrupal = e.id_categoria != 0,
+                    idDocumentoInstrucciones = e.idInstruccion,
+                    trabajoGrupal = e.id_categoria != 0 && e.id_categoria !=null,
                     idCategoriaTrabajo = e.id_categoria == 0 ? null : e.id_categoria.ToString()
                 })
             });
@@ -51,37 +51,37 @@ namespace CEDigital_api.Controllers
         }
 
         // PATCH: /api/evaluaciones/{id}
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchEvaluacion(int id, [FromBody] EvaluacionUpdateDto dto)
+        [HttpPatch("{id_evaluacion}")]
+        public async Task<IActionResult> PatchEvaluacion(int id_evaluacion, [FromBody] EvaluacionUpdateDto dto)
         {
-            var evaluacion = await _context.Evaluacion.FindAsync(id);
-            if (evaluacion == null)
-                return NotFound();
+            var existingEvaluation = await _context.Evaluacion.FindAsync(id_evaluacion);
+            if (existingEvaluation == null)
+                return NotFound("Evaluación no encontrada.");
 
-            if (dto.nombre != null)
-                evaluacion.nombre = dto.nombre;
+            if (!string.IsNullOrWhiteSpace(dto.nombreRubro))
+                existingEvaluation.nombre = dto.nombreRubro;
 
-            if (dto.peso.HasValue)
-                evaluacion.peso = dto.peso.Value;
+            if (dto.porcentaje.HasValue)
+                existingEvaluation.peso = dto.porcentaje.Value;
 
-            if (dto.fecha_entrega.HasValue)
-                evaluacion.fecha_entrega = dto.fecha_entrega.Value;
+            if (dto.fechaEntrega.HasValue)
+                existingEvaluation.fecha_entrega = dto.fechaEntrega.Value;
 
-            if (dto.tipo != null)
-                evaluacion.tipo = dto.tipo;
+            if (!string.IsNullOrWhiteSpace(dto.descripcion))
+                existingEvaluation.tipo = dto.descripcion;
 
-            if (dto.archivo_especificacion != null)
-                evaluacion.archivo_especificacion = dto.archivo_especificacion;
+            // Accept null values from DTO for archivo_especificacion
+            existingEvaluation.idInstruccion = dto.idDocumentoInstrucciones;
 
-            if (dto.id_rubro.HasValue)
-                evaluacion.id_rubro = dto.id_rubro.Value;
+            // Accept null values from DTO for id_categoria
+            existingEvaluation.id_categoria = dto.idcategoria;
 
-            if (dto.id_categoria.HasValue)
-                evaluacion.id_categoria = dto.id_categoria.Value;
+            if (dto.idRubro.HasValue)
+                existingEvaluation.id_rubro = dto.idRubro.Value;
 
             await _context.SaveChangesAsync();
 
-            return Ok(evaluacion);
+            return Ok(existingEvaluation);
         }
 
         // DELETE: /api/evaluaciones/{id}
@@ -98,16 +98,40 @@ namespace CEDigital_api.Controllers
             return NoContent();
         }
 
+        // POST: /api/evaluaciones
+        [HttpPost]
+        public async Task<IActionResult> CreateEvaluacion([FromBody] EvaluacionUpdateDto dto)
+        {
+            if (dto == null)
+                return BadRequest("Datos de evaluación inválidos.");
+
+            var nuevaEvaluacion = new Evaluacion
+            {
+                nombre = dto.nombreRubro ?? "Nueva Evaluación",
+                peso = dto.porcentaje ?? 0,
+                fecha_entrega = dto.fechaEntrega ?? DateTime.UtcNow,
+                tipo = dto.descripcion ?? "Sin descripción",
+                idInstruccion = dto.idDocumentoInstrucciones,
+                id_categoria = dto.idcategoria,
+                id_rubro = dto.idRubro ?? 0
+            };
+
+            _context.Evaluacion.Add(nuevaEvaluacion);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetEvaluacionesPorGrupo), new { idGrupo = nuevaEvaluacion.id_rubro }, nuevaEvaluacion);
+        }
+
         // DTO por si aca
         public class EvaluacionUpdateDto
         {
-            public string? nombre { get; set; }
-            public double? peso { get; set; }
-            public DateTime? fecha_entrega { get; set; }
-            public string? tipo { get; set; }
-            public string? archivo_especificacion { get; set; }
-            public int? id_rubro { get; set; }
-            public int? id_categoria { get; set; }
+            public string? nombreRubro { get; set; }
+            public double? porcentaje { get; set; }
+            public DateTime? fechaEntrega { get; set; }
+            public string? descripcion { get; set; }
+            public int? idDocumentoInstrucciones { get; set; }
+            public int? idRubro { get; set; }
+            public int? idcategoria { get; set; }
         }
     }
 }

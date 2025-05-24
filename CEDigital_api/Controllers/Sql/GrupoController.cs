@@ -15,10 +15,13 @@ namespace CEDigital_api.Controllers.Sql
         private readonly AppDbContext _context;
         private readonly ProfesorService _profesorService;
 
-        public GrupoController(AppDbContext context, ProfesorService profesorService)
+        private readonly EstudianteService _studentService;
+
+        public GrupoController(AppDbContext context, ProfesorService profesorService, EstudianteService estudianteService)
         {
             _context = context;
             _profesorService = profesorService;
+            _studentService = estudianteService;
         }
 
         //GET : api/grupos
@@ -342,7 +345,37 @@ namespace CEDigital_api.Controllers.Sql
             return NotFound("No se encontró un estudiante ni profesor con ese identificador.");
         }
 
+        // Nuevo GET: api/grupos/Estudiantes/{id_grupo}
+        [HttpGet("Estudiantes/{id_grupo}")]
+        public async Task<IActionResult> GetEstudiantesByGrupo(int id_grupo)
+        {
+            // Obtener carnets de estudiantes en el grupo
+            var carnets = await _context.EstudiantexGrupo
+                .Where(exg => exg.id_grupo == id_grupo)
+                .Select(exg => exg.carnet_estudiante)
+                .Distinct()
+                .ToListAsync();
 
+            if (!carnets.Any())
+                return NotFound($"No se encontraron estudiantes para el grupo con id {id_grupo}.");
+
+            // Obtener detalles de estudiantes desde Mongo
+            var estudiantes = await _studentService.GetByCarnetsAsync(carnets);
+
+            var resultado = estudiantes
+                .Where(e => e != null)
+                .Select(e => new
+                {
+                    carnet = e.carnet,
+                    nombre = e.nombre,
+                    apellidos = e.apellidos,
+                    correo = e.correo,
+                    telefono = e.telefono
+                })
+                .ToList();
+
+            return Ok(resultado);
+        }
 
     }
 }

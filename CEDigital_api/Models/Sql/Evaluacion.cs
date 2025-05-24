@@ -11,7 +11,6 @@ namespace CEDigital_api.Models.Sql
         public double peso { get; set; }
         public DateTime fecha_entrega { get; set; }
         public string tipo { get; set; }
-        public string archivo_especificacion { get; set; }
 
         [JsonIgnore]
         public List<Entregable> entregables { get; set; } = new();
@@ -22,6 +21,8 @@ namespace CEDigital_api.Models.Sql
 
         public int? id_categoria { get; set; }
         public CategoriaGrupo? categoria { get; set; }
+
+        public int? idInstruccion { get; set; }
 
     }
 }

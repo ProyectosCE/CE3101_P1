@@ -108,5 +108,42 @@ namespace CEDigital_api.Controllers.Sql
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        // GET: api/noticias/grupo/{id_grupo}
+        [HttpGet("grupo/{id_grupo}")]
+        public async Task<IActionResult> GetNoticiasByGrupo(int id_grupo)
+        {
+            var noticias = await _context.Noticia
+                .Where(n => n.id_grupo == id_grupo)
+                .OrderByDescending(n => n.fecha_publicacion)
+                .Select(n => new
+                {
+                    id = n.id_noticia,
+                    n.titulo,
+                    fecha = n.fecha_publicacion.ToString("yyyy-MM-dd"),
+                    autor = n.cedula_profesor,
+                    cuerpo = n.mensaje
+                })
+                .ToListAsync();
+
+            if (!noticias.Any())
+                return NotFound($"No se encontraron noticias para el grupo con id {id_grupo}.");
+
+            return Ok(noticias);
+        }
+
+        // DELETE: api/noticias/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteNoticia(int id)
+        {
+            var noticia = await _context.Noticia.FindAsync(id);
+            if (noticia == null)
+                return NotFound($"No se encontró una noticia con el ID {id}.");
+
+            _context.Noticia.Remove(noticia);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
     }
 }

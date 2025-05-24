@@ -91,8 +91,8 @@ namespace CEDigital_api.Controllers.Mongo
             var profesor = await _profesorService.GetByIdAsync(id);
             if (profesor == null)
                 return NotFound("Profesor no encontrado.");
-            profesor.estado = profesor.estado == "activo" ? "inactivo" : "activo";
-            await _profesorService.UpdateByIdAsync(id, profesor);
+            var estado = profesor.estado == "activo" ? "inactivo" : "activo";
+            await _profesorService.UpdateEstadoAsync(id, estado);
             return NoContent();
         }
 
