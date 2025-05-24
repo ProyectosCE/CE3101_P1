@@ -1,14 +1,15 @@
 // src/components/admin/CourseManager.tsx
 import React, { useState } from 'react'
-import ExcelUploader from './ExcelUploader'
-import { uploadCursosExcel, createCurso, updateCurso, toggleCurso, getCursos } from '@/Functions/coursesApi'
+import { createCurso, updateCurso, getCursos, toggleCursoState } from '@/Functions/coursesApi'
+import { ApiCourse } from '@/types/course'
+import { AxiosError } from 'axios'
 
 interface CourseEntry {
-  code: string
-  name: string
-  credits: number
-  hours: number
-  disabled?: boolean
+  code: string;
+  name: string;
+  credits: number;
+  careerCode: string;
+  disabled: boolean;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -37,29 +38,26 @@ const CourseManager: React.FC = () => {
     code: '',
     name: '',
     credits: 0,
-    hours: 0,
+    careerCode: '',
+    disabled: false
   })
   const [createdCourses, setCreatedCourses] = useState<CourseEntry[]>([])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editingCourse, setEditingCourse] = useState<CourseEntry | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Cargar cursos desde el backend
   React.useEffect(() => {
     setLoading(true)
     getCursos()
-      .then((data: any) => {
-        // Soporta respuesta { courses: [...] } o array directo
-        const arr = Array.isArray(data) ? data : data.courses ?? []
+      .then((data: ApiCourse[]) => {
         setCreatedCourses(
-          arr.map((c: any, idx: number) => ({
-            id: c.id?.toString() ?? (idx + 1).toString(),
-            code: c.codigo,
+          data.map(c => ({
+            code: c.codigo_curso,
             name: c.nombre,
-            credits: c.creditos ?? 0,
-            hours: c.horasLectivas ?? 0,
-            disabled: c.deshabilitado || c.disabled,
+            credits: c.creditos,
+            careerCode: c.codigo_carrera,
+            disabled: c.estado === 'inactivo'
           }))
         )
       })
@@ -72,14 +70,32 @@ const CourseManager: React.FC = () => {
   }
 
   const resetForm = () => {
-    setNewCourse({ code: '', name: '', credits: 0, hours: 0 })
+    setNewCourse({ code: '', name: '', credits: 0, careerCode: '', disabled: false })
     setShowForm(false)
   }
 
-  const createCourse = () => {
+  const createCourse = async () => {
     if (!allFieldsFilled(newCourse)) return
-    setCreatedCourses([...createdCourses, newCourse])
-    resetForm()
+    try {
+      const careerCode = newCourse.code.substring(0, 2)
+      const apiCourse: ApiCourse = {
+        codigo_curso: newCourse.code,
+        nombre: newCourse.name,
+        creditos: newCourse.credits,
+        estado: 'inactivo',
+        codigo_carrera: careerCode
+      }
+      await createCurso(apiCourse)
+      setCreatedCourses([...createdCourses, { ...newCourse, careerCode, disabled: true }])
+      resetForm()
+    } catch (error: any) {
+      console.error('Error creating course:', error)
+      if (error.response?.status === 400 && error.response?.data?.includes('carrera')) {
+        alert(`Error: La carrera con código '${newCourse.code.substring(0, 2)}' no existe.`)
+      } else {
+        alert('Error al crear el curso')
+      }
+    }
   }
 
   // Validation for course code
@@ -88,8 +104,7 @@ const CourseManager: React.FC = () => {
   const allFieldsFilled = (c: CourseEntry) =>
     isValidCourseCode(c.code) && 
     c.name.trim() !== '' && 
-    c.credits > 0 &&
-    c.hours > 0
+    c.credits >= 0
 
   // Group courses by school
   const coursesBySchool = createdCourses.reduce((acc, course) => {
@@ -114,13 +129,51 @@ const CourseManager: React.FC = () => {
     setEditingCourse({ ...editingCourse, [field]: value })
   }
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingIndex === null || !editingCourse) return
-    const copy = [...createdCourses]
-    copy[editingIndex] = editingCourse
-    setCreatedCourses(copy)
-    setEditingIndex(null)
-    setEditingCourse(null)
+    try {
+      const apiCourse: ApiCourse = {
+        codigo_curso: editingCourse.code,
+        nombre: editingCourse.name,
+        creditos: editingCourse.credits,
+        estado: editingCourse.disabled ? 'inactivo' : 'activo',
+        codigo_carrera: editingCourse.careerCode
+      }
+      await updateCurso(apiCourse)
+      const copy = [...createdCourses]
+      copy[editingIndex] = editingCourse
+      setCreatedCourses(copy)
+      setEditingIndex(null)
+      setEditingCourse(null)
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        // Close modal first
+        setEditingIndex(null)
+        setEditingCourse(null)
+        
+        // Then refresh the course list
+        setLoading(true)
+        try {
+          const data = await getCursos()
+          setCreatedCourses(
+            data.map(c => ({
+              code: c.codigo_curso,
+              name: c.nombre,
+              credits: c.creditos,
+              careerCode: c.codigo_carrera,
+              disabled: c.estado === 'inactivo'
+            }))
+          )
+        } finally {
+          setLoading(false)
+        }
+        // Show error last
+        alert(`Error: El curso '${editingCourse.code}' no existe en el sistema.`)
+      } else {
+        console.error('Error updating course:', error)
+        alert('Error al actualizar el curso')
+      }
+    }
   }
 
   const cancelEdit = () => {
@@ -128,55 +181,48 @@ const CourseManager: React.FC = () => {
     setEditingCourse(null)
   }
 
-  const toggleDisabled = (idx: number) => {
-    const copy = [...createdCourses]
-    copy[idx].disabled = !copy[idx].disabled
-    setCreatedCourses(copy)
+  const toggleDisabled = async (idx: number) => {
+    try {
+      const course = createdCourses[idx]
+      await toggleCursoState(course.code)
+      const copy = [...createdCourses]
+      copy[idx].disabled = !copy[idx].disabled
+      setCreatedCourses(copy)
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        alert(`Error: No se encontró el curso '${createdCourses[idx].code}' en el sistema.`)
+        setLoading(true)
+        try {
+          const data = await getCursos()
+          setCreatedCourses(
+            data.map(c => ({
+              code: c.codigo_curso,
+              name: c.nombre,
+              credits: c.creditos,
+              careerCode: c.codigo_carrera,
+              disabled: c.estado === 'inactivo'
+            }))
+          )
+        } catch (refreshError) {
+          console.error('Error refreshing courses:', refreshError)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        console.error('Error toggling course state:', error)
+        alert('Error al cambiar el estado del curso')
+      }
+    }
   }
-
   const filteredCourses = createdCourses.filter(course => 
     course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Subida de Excel
-  const handleFileSelect = (file: File) => setSelectedFile(file)
-
-  const confirmImport = async () => {
-    if (!selectedFile) {
-      alert('No hay archivo seleccionado.')
-      return
-    }
-    try {
-      const res = await uploadCursosExcel(selectedFile)
-      alert(
-        `Importación completada.\nImportados: ${res.importedCount ?? '-'}\nErrores: ${res.errors?.length || 0}`
-      )
-      setSelectedFile(null)
-      // Opcional: recargar cursos desde backend aquí
-    } catch (err) {
-      alert('Error al subir el archivo.')
-    }
-  }
-
   return (
     <div>
       <h2 className="mb-4">Gestión de Cursos</h2>
 
-      {/* Temporarily disabled Excel import
-      <div className="mb-4">
-        <h5>Importar desde Excel</h5>
-        <ExcelUploader onFileSelect={handleFileSelect} />
-        {selectedFile && (
-          <div className="mt-2">
-            <span>Archivo listo: {selectedFile.name}</span>{' '}
-            <button className="btn btn-success btn-sm ms-2" onClick={confirmImport}>
-              Confirmar importación
-            </button>
-          </div>
-        )}
-      </div>
-      */}
       <div className="mb-4">
         <input
           type="text"
@@ -230,16 +276,7 @@ const CourseManager: React.FC = () => {
                 value={newCourse.credits}
                 onChange={(e) => updateNewCourse('credits', Math.max(0, parseInt(e.target.value) || 0))}
                 min="0"
-              />
-            </div>
-            <div className="col-md-6 mb-3">
-              <label className="form-label">Horas</label>
-              <input
-                type="number"
-                className="form-control"
-                value={newCourse.hours}
-                onChange={(e) => updateNewCourse('hours', Math.max(0, parseInt(e.target.value) || 0))}
-                min="0"
+                step="1"
               />
             </div>
           </div>
@@ -260,7 +297,6 @@ const CourseManager: React.FC = () => {
             <th>Código</th>
             <th>Nombre</th>
             <th>Créditos</th>
-            <th>Horas</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -277,12 +313,10 @@ const CourseManager: React.FC = () => {
                 <td>{course.code}</td>
                 <td>{course.name}</td>
                 <td>{course.credits}</td>
-                <td>{course.hours}</td>
                 <td>
                   <button
                     className="btn btn-sm btn-primary me-1"
                     onClick={() => handleEdit(i)}
-                    disabled={course.disabled}
                   >
                     Editar
                   </button>
@@ -341,18 +375,9 @@ const CourseManager: React.FC = () => {
                 type="number"
                 className="form-control"
                 value={editingCourse.credits}
-                onChange={(e) => updateEditingCourse('credits', parseInt(e.target.value) || 0)}
+                onChange={(e) => updateEditingCourse('credits', Math.max(0, parseInt(e.target.value) || 0))}
                 min="0"
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Horas</label>
-              <input
-                type="number"
-                className="form-control"
-                value={editingCourse.hours}
-                onChange={(e) => updateEditingCourse('hours', parseInt(e.target.value) || 0)}
-                min="0"
+                step="1"
               />
             </div>
 

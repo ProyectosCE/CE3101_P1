@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuthStore } from '../../stores/authStore'
+import { loginUser } from '@/Functions/authApi'
 
 const LoginForm: React.FC = () => {
-  const [username, setUsername] = useState('')
+  const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
+  const [error, setError] = useState('')
   const login = useAuthStore((state) => state.login)
   const checkExpiration = useAuthStore((state) => state.checkExpiration)
   const router = useRouter()
@@ -15,19 +17,21 @@ const LoginForm: React.FC = () => {
     checkExpiration()
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = login(username, password)
+    setError('')
     
-    if (success) {
-      const user = useAuthStore.getState().user
-      if (user?.role === 'admin') {
+    try {
+      const response = await loginUser(correo, password)
+      login(response)
+      
+      if (response.role === 'admin') {
         router.push('/admin/dashboard')
       } else {
         router.push('/main')
       }
-    } else {
-      alert('Credenciales inválidas')
+    } catch (err: any) {
+      setError(err.message)
     }
   }
 
@@ -42,18 +46,18 @@ const LoginForm: React.FC = () => {
         <h3 className="mb-4">Iniciar Sesión</h3>
 
         <div className="mb-3 text-start">
-          <label htmlFor="email" className="form-label">Usuario</label>
+          <label htmlFor="correo" className="form-label">Correo</label>
           <div className="input-group">
             <span className="input-group-text">
-              <i className="fas fa-user"></i>
+              <i className="fas fa-envelope"></i>
             </span>
             <input
-              type="text"
-              id="username"
+              type="email"
+              id="correo"
               className="form-control"
-              placeholder="Nombre de usuario"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              value={correo}
+              onChange={e => setCorreo(e.target.value)}
               required
             />
           </div>
@@ -84,6 +88,10 @@ const LoginForm: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {error && (
+          <div className="alert alert-danger mb-3">{error}</div>
+        )}
 
         <button type="submit" className="btn btn-primary w-100">
           Entrar

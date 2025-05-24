@@ -1,57 +1,47 @@
-import { API_BASE_URL } from '@/stores/api';
 import axios from 'axios';
+import { API_BASE_URL } from '../stores/api';
 
-async function apiRequest<T = any>(
-    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
-    url: string,
-    data?: any,
-    config?: any
-): Promise<T> {
-    const response = await axios({
-        method,
-        url: `${API_BASE_URL}${url}`,
-        data,
-        ...config,
-    });
+export interface ApiSchool {
+    codigo_carrera: string;
+    nombre: string;
+    estado: 'activo' | 'inactivo';
+}
+
+// Get all schools
+export const getEscuelas = async (): Promise<ApiSchool[]> => {
+    const response = await axios.get<ApiSchool[]>(`${API_BASE_URL}Carrera`);
     return response.data;
 }
 
-// Crear escuela
-export function createEscuela(escuela: {
-    codigo: string;
-    nombre: string;
-}) {
-    return apiRequest('post', '/escuelas', escuela);
+// Get single school
+export const getEscuela = async (codigo: string): Promise<ApiSchool> => {
+    const response = await axios.get<ApiSchool>(`${API_BASE_URL}Carrera/${codigo}`);
+    return response.data;
 }
 
-// Actualizar escuela
-export function updateEscuela(id: string, data: Partial<{
-    codigo: string;
-    nombre: string;
-}>) {
-    return apiRequest('patch', `/escuelas/${id}`, data);
+// Create school
+export const createEscuela = async (escuela: Omit<ApiSchool, 'estado'>): Promise<ApiSchool> => {
+    const response = await axios.post<ApiSchool>(`${API_BASE_URL}Carrera`, escuela);
+    return response.data;
 }
 
-// Activar/desactivar escuela
-export function toggleEscuela(id: string) {
-    return apiRequest('patch', `/escuelas/${id}/toggle`);
+// Update school
+export const updateEscuela = async (codigo: string, escuela: ApiSchool): Promise<ApiSchool> => {
+    const response = await axios.patch<ApiSchool>(`${API_BASE_URL}Carrera/${codigo}`, escuela);
+    return response.data;
 }
 
-// Subir escuelas por Excel
+// Toggle school state
+export const toggleEscuela = async (codigo: string): Promise<ApiSchool> => {
+    const response = await axios.patch<ApiSchool>(`${API_BASE_URL}Carrera/${codigo}/toggle`);
+    return response.data;
+}
+
+// Upload schools from Excel
 export function uploadEscuelasExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return apiRequest('post', '/escuelas/upload-excel', formData, {
+    return axios.post(`${API_BASE_URL}Carrera/upload-excel`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
-    });
-}
-
-// Obtener todas las escuelas
-export function getEscuelas() {
-    return apiRequest('get', '/escuelas');
-}
-
-// Eliminar escuela
-export function deleteEscuela(id: string) {
-    return apiRequest('delete', `/escuelas/${id}`);
+    }).then(response => response.data);
 }

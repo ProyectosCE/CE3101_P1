@@ -1,61 +1,23 @@
-import { API_BASE_URL } from '@/stores/api';
 import axios from 'axios';
+import { API_BASE_URL } from '../stores/api';
+import { ApiCourse } from '@/types/course';
 
-async function apiRequest<T = any>(
-    method: 'get' | 'post' | 'patch' | 'put' | 'delete',
-    url: string,
-    data?: any,
-    config?: any
-): Promise<T> {
-    const response = await axios({
-        method,
-        url: `${API_BASE_URL}${url}`,
-        data,
-        ...config,
-    });
-    return response.data;
-}
+export const getCursos = async (): Promise<ApiCourse[]> => {
+  const response = await axios.get<ApiCourse[]>(`${API_BASE_URL}Curso`);
+  return response.data;
+};
 
-// Crear curso
-export function createCurso(curso: {
-    codigo: string;
-    nombre: string;
-    creditos: number;
-    horasLectivas: number;
-}) {
-    return apiRequest('post', '/cursos', curso);
-}
+export const createCurso = async (curso: ApiCourse): Promise<ApiCourse> => {
+  const response = await axios.post<ApiCourse>(`${API_BASE_URL}Curso`, curso);
+  return response.data;
+};
 
-// Actualizar curso
-export function updateCurso(id: string, data: Partial<{
-    codigo: string;
-    nombre: string;
-    creditos: number;
-    horasLectivas: number;
-}>) {
-    return apiRequest('patch', `/cursos/${id}`, data);
-}
+export const updateCurso = async (curso: ApiCourse): Promise<ApiCourse> => {
+  const response = await axios.patch<ApiCourse>(`${API_BASE_URL}Curso/${curso.codigo_curso}`, curso);
+  return response.data;
+};
 
-// Activar/desactivar curso
-export function toggleCurso(id: string) {
-    return apiRequest('patch', `/cursos/${id}/toggle`);
-}
-
-// Subir cursos por Excel
-export function uploadCursosExcel(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiRequest('post', '/cursos/upload-excel', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
-}
-
-// Obtener todos los cursos
-export function getCursos() {
-    return apiRequest('get', '/cursos');
-}
-
-// Eliminar curso
-export function deleteCurso(id: string) {
-    return apiRequest('delete', `/cursos/${id}`);
-}
+export const toggleCursoState = async (codigoCurso: string): Promise<ApiCourse> => {
+  const response = await axios.patch<ApiCourse>(`${API_BASE_URL}Curso/${codigoCurso}/toggle`);
+  return response.data;
+};

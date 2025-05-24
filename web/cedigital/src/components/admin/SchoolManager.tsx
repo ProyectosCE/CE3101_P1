@@ -49,40 +49,38 @@ const SchoolManager: React.FC = () => {
   // Cargar escuelas desde el backend
   React.useEffect(() => {
     getEscuelas().then((data: any) => {
-      // Soporta respuesta { schools: [...] } o array directo
-      const arr = Array.isArray(data) ? data : data.schools ?? []
       setCreatedSchools(
-        arr.map((s: any) => ({
-          id: s.id?.toString(),
-          code: s.codigo,
-          name: s.nombre,
-          // Solo se usan code y name en el frontend
-          disabled: s.deshabilitada || s.disabled,
+        data.map((s: any) => ({
+          id: s.codigo_carrera, // Use `codigo_carrera` as `id`
+          code: s.codigo_carrera, // Map `codigo_carrera` to `code`
+          name: s.nombre, // Map `nombre` to `name`
+          disabled: s.estado === 'inactivo', // Map `estado` to `disabled`
         }))
-      )
-    }).catch(() => setCreatedSchools([]))
+      );
+    }).catch(() => setCreatedSchools([]));
   }, [])
 
   // Crear escuela usando API
   const createSchool = async () => {
-    if (!allFieldsFilled(newSchool)) return
+    if (!allFieldsFilled(newSchool)) return;
     try {
       const res = await createEscuela({
-        codigo: newSchool.code,
+        codigo_carrera: newSchool.code,
         nombre: newSchool.name,
-      })
+      });
       setCreatedSchools(prev => [
         ...prev,
         {
-          id: res.escuela?.id?.toString(),
-          code: res.escuela?.codigo,
-          name: res.escuela?.nombre,
-          disabled: res.escuela?.deshabilitada,
+          id: res.codigo_carrera, // Use `codigo` directly from ApiSchool
+          code: res.codigo_carrera,
+          name: res.nombre,
+          //por defecto al crear una escuela el estado es inactivo
+          disabled: true
         }
-      ])
-      resetForm()
+      ]);
+      resetForm();
     } catch {
-      alert('Error al crear escuela')
+      alert('Error al crear escuela');
     }
   }
 
@@ -92,8 +90,8 @@ const SchoolManager: React.FC = () => {
     isValidSchoolCode(s.code) && s.name.trim() !== ''
 
   const handleEdit = (idx: number) => {
-    setEditingIndex(idx)
-    setEditingSchool({ ...createdSchools[idx] })
+    setEditingIndex(idx);
+    setEditingSchool({ ...createdSchools[idx] });
   }
 
   const updateEditingSchool = (field: keyof SchoolEntry, value: string) => {
@@ -103,28 +101,32 @@ const SchoolManager: React.FC = () => {
 
   // Guardar edición usando API
   const saveEdit = async () => {
-    if (editingIndex === null || !editingSchool || !allFieldsFilled(editingSchool)) return
+    if (editingIndex === null || !editingSchool || !allFieldsFilled(editingSchool)) return;
     try {
-      const res = await updateEscuela(
+      await updateEscuela(
         createdSchools[editingIndex].id!,
         {
-          codigo: editingSchool.code,
+          codigo_carrera: editingSchool.code, // Use `codigo_carrera` for the API body
           nombre: editingSchool.name,
+          estado: editingSchool.disabled ? 'inactivo' : 'activo', // Map `disabled` to `estado`
         }
-      )
-      const copy = [...createdSchools]
-      copy[editingIndex] = {
-        ...copy[editingIndex],
-        code: res.codigo,
-        name: res.nombre,
-      }
-      setCreatedSchools(copy)
-      setEditingIndex(null)
-      setEditingSchool(null)
+      );
+      // Refresh the list of schools
+      const updatedSchools = await getEscuelas();
+      setCreatedSchools(
+        updatedSchools.map((s: any) => ({
+          id: s.codigo_carrera,
+          code: s.codigo_carrera,
+          name: s.nombre,
+          disabled: s.estado === 'inactivo',
+        }))
+      );
+      setEditingIndex(null);
+      setEditingSchool(null);
     } catch {
-      alert('Error al editar escuela')
+      alert('Error al editar Carrera');
     }
-  }
+  };
 
   const cancelEdit = () => {
     setEditingIndex(null)
@@ -133,18 +135,22 @@ const SchoolManager: React.FC = () => {
 
   // Habilitar/deshabilitar usando API
   const toggleDisabled = async (idx: number) => {
-    const school = createdSchools[idx]
-    if (!school.id) return
+    const school = createdSchools[idx];
+    if (!school.id) return;
     try {
-      const res = await toggleEscuela(school.id)
-      const copy = [...createdSchools]
-      copy[idx] = {
-        ...copy[idx],
-        disabled: res.deshabilitada ?? !copy[idx].disabled,
-      }
-      setCreatedSchools(copy)
+      await toggleEscuela(school.id);
+      // Refresh the list of schools
+      const updatedSchools = await getEscuelas();
+      setCreatedSchools(
+        updatedSchools.map((s: any) => ({
+          id: s.codigo_carrera,
+          code: s.codigo_carrera,
+          name: s.nombre,
+          disabled: s.estado === 'inactivo',
+        }))
+      );
     } catch {
-      alert('Error al cambiar estado de la escuela')
+      alert('Error al cambiar estado de la carrera');
     }
   }
 
@@ -170,7 +176,7 @@ const SchoolManager: React.FC = () => {
 
   return (
     <div>
-      <h2 className="mb-4">Gestión de Escuelas</h2>
+      <h2 className="mb-4">Gestión de Carreras</h2>
       
       {/* Crear escuela form */}
       <div className="mb-4">
@@ -178,7 +184,7 @@ const SchoolManager: React.FC = () => {
           className={`btn ${showForm ? 'btn-danger' : 'btn-secondary'}`} 
           onClick={() => setShowForm(!showForm)}
         >
-          {showForm ? '- Cancelar' : '+ Crear Escuela'}
+          {showForm ? '- Cancelar' : '+ Crear Carrera'}
         </button>
       </div>
 
@@ -186,7 +192,7 @@ const SchoolManager: React.FC = () => {
         <div className="border rounded p-3 mb-3">
           <div className="row mb-3">
             <div className="col-md-4 mb-2">
-              <label className="form-label">Código de Escuela (2 letras)</label>
+              <label className="form-label">Código de Carerra (2 letras)</label>
               <input
                 type="text"
                 className="form-control"
@@ -196,7 +202,7 @@ const SchoolManager: React.FC = () => {
               />
             </div>
             <div className="col-md-8 mb-2">
-              <label className="form-label">Nombre de la Escuela</label>
+              <label className="form-label">Nombre de la Carrera</label>
               <input
                 type="text"
                 className="form-control"
@@ -210,7 +216,7 @@ const SchoolManager: React.FC = () => {
             disabled={!allFieldsFilled(newSchool)}
             onClick={createSchool}
           >
-            Crear Escuela
+            Crear Carrera
           </button>
         </div>
       )}
@@ -229,7 +235,7 @@ const SchoolManager: React.FC = () => {
         )}
       </div>
       */}
-      <h3 className="mt-5 mb-3">Escuelas Registradas</h3>
+      <h3 className="mt-5 mb-3">Carreras Registradas</h3>
       <table className="table">
         <thead>
           <tr>
@@ -254,7 +260,6 @@ const SchoolManager: React.FC = () => {
                 <button
                   className="btn btn-sm btn-primary me-1"
                   onClick={() => handleEdit(i)}
-                  disabled={s.disabled}
                 >
                   Editar
                 </button>
@@ -274,14 +279,14 @@ const SchoolManager: React.FC = () => {
         <div style={overlayStyle}>
           <div style={modalStyle}>
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5>Editar Escuela</h5>
+              <h5>Editar Carrera</h5>
               <button className="btn btn-sm btn-secondary" onClick={cancelEdit}>
                 X
               </button>
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Código de Escuela (2 letras)</label>
+              <label className="form-label">Código de Carrera (2 letras)</label>
               <input
                 type="text"
                 className="form-control"
@@ -291,7 +296,7 @@ const SchoolManager: React.FC = () => {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">Nombre de la Escuela</label>
+              <label className="form-label">Nombre de la Carrera</label>
               <input
                 type="text"
                 className="form-control"

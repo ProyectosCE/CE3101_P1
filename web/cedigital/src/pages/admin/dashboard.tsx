@@ -11,7 +11,7 @@ import StudentManager        from '../../components/admin/StudentManager'
 
 const AdminDashboard: React.FC = () => {
   const [view, setView] = useState<
-    'courses' | 'schools' | 'semester' | 'groups' | 'professors' | 'students'
+    'courses' | 'career' | 'semester' | 'groups' | 'professors' | 'students'
   >('courses')
   const [studentTabKey, setStudentTabKey] = useState(0)
   const user = useAuthStore((state) => state.user)
@@ -32,10 +32,10 @@ const AdminDashboard: React.FC = () => {
           </li>
           <li className="nav-item">
             <button
-              className={`nav-link ${view === 'schools' ? 'active' : ''}`}
-              onClick={() => setView('schools')}
+              className={`nav-link ${view === 'career' ? 'active' : ''}`}
+              onClick={() => setView('career')}
             >
-              Gestión de Escuelas
+              Gestión de Carreras
             </button>
           </li>
           <li className="nav-item">
@@ -77,7 +77,7 @@ const AdminDashboard: React.FC = () => {
 
         <div className="admin-content">
           {view === 'courses'     && <CourseManager />}
-          {view === 'schools'     && <SchoolManager />}
+          {view === 'career'     && <SchoolManager />}
           {view === 'semester'    && <SemesterInitializer />}
           {view === 'groups'      && <GroupManager />}
           {view === 'professors'  && <ProfessorManager />}

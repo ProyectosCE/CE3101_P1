@@ -17,47 +17,55 @@ async function apiRequest<T = any>(
 }
 
 // Crear grupo
-export function createGroup(group: {
+export function createGroup(profesores: string[], annio: string, periodo: string, group: {
     numero_grupo: string;
-    annio: number;
-    periodo: string;
+    estado: 'activo' | 'inactivo';
     codigo_curso: string;
-    profesores: any[];
 }) {
-    return apiRequest('post', '/grupos', group);
+    const queryParams = [
+        `anio=${annio}`,
+        `periodo=${periodo}`,
+        ...profesores.map(p => `profesores=${p}`)
+    ].join('&');
+    return apiRequest('post', `Grupo/?${queryParams}`, group);
 }
 
 // Actualizar grupo
-export function updateGroup(id: string, data: Partial<{
+export function updateGroup(id: string, profesores: string[], annio: string, periodo: string, data: Partial<{
+    id_grupo: string;
     numero_grupo: string;
-    annio: number;
-    periodo: string;
     codigo_curso: string;
-    profesores: any[];
+    estado: string
 }>) {
-    return apiRequest('patch', `/grupos/${id}`, data);
+    const queryParams = [
+        `anio=${annio}`,
+        `periodo=${periodo}`,
+        ...profesores.map(p => `profesores=${p}`)
+    ].join('&');
+    
+    return apiRequest('patch', `Grupo/${id}/?${queryParams}`, data);
 }
 
 // Activar/desactivar grupo
 export function toggleGroup(id: string) {
-    return apiRequest('patch', `/grupos/${id}/toggle`);
+    return apiRequest('patch', `Grupo/${id}/toggle`);
 }
 
 // Subir grupos por Excel
 export function uploadGroupsExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    return apiRequest('post', '/grupos/upload-excel', formData, {
+    return apiRequest('post', 'Grupo/upload-excel', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
 }
 
 // Obtener todos los grupos
 export function getGroups() {
-    return apiRequest('get', '/grupos');
+    return apiRequest('get', 'Grupo');
 }
 
 // Eliminar grupo
 export function deleteGroup(id: string) {
-    return apiRequest('delete', `/grupos/${id}`);
+    return apiRequest('delete', `Grupo/${id}`);
 }

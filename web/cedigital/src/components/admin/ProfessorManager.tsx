@@ -1,33 +1,60 @@
 import React, { useState } from 'react'
-import ExcelUploader from './ExcelUploader'
-import * as XLSX from 'xlsx'
 import {
   createProfesor,
   uploadProfesoresExcel,
   getProfesores,
+  updateProfesor,
+  toggleProfesorState,
 } from '@/Functions/professorsApi'
 
 interface Professor {
   id: string
   cedula: string
   nombre: string
-  email: string
-  telefono: string
+  apellidos: string
+  correo: string
+  password?: string
+  isAdmin: boolean
+  estado: string
+}
+
+const overlayStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1050,
+}
+
+const modalStyle: React.CSSProperties = {
+  backgroundColor: 'white',
+  padding: '2rem',
+  borderRadius: '0.5rem',
+  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+  minWidth: '300px',
+  maxWidth: '500px',
+  width: '100%',
 }
 
 const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
   const [profs, setProfs] = useState<Professor[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [newProf, setNewProf] = useState<Omit<Professor, 'id'>>({
+  const [newProf, setNewProf] = useState<Omit<Professor, 'id' | 'password' | 'isAdmin' | 'estado'>>({
     cedula: '',
     nombre: '',
-    email: '',
-    telefono: '',
+    apellidos: '',
+    correo: '',
   })
   const [loading, setLoading] = useState(true)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editingProf, setEditingProf] = useState<Professor | null>(null)
 
   const cedulaRegex = /^\d{9}$/
-  const telefonoRegex = /^\d{4}-\d{4}$/
 
   // Referencia al archivo Excel
   const handleFileSelect = (file: File) => setSelectedFile(file)
@@ -42,8 +69,9 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
       await uploadProfesoresExcel(selectedFile)
       alert('Archivo enviado al servidor para procesamiento.')
       setSelectedFile(null)
-      // Opcional: recargar lista de profesores desde el backend aquí
-    } catch (err) {
+      const updatedProfs = await getProfesores()
+      setProfs(updatedProfs)
+    } catch {
       alert('Error al subir el archivo.')
     }
   }
@@ -56,8 +84,8 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
 
   // Agregar manual con validación y API
   const addManual = async () => {
-    const { cedula, nombre, email, telefono } = newProf
-    if (!cedula || !nombre || !email || !telefono) {
+    const { cedula, nombre, apellidos, correo } = newProf
+    if (!cedula || !nombre || !apellidos || !correo) {
       alert('Todos los campos son obligatorios.')
       return
     }
@@ -65,33 +93,106 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
       alert('Cédula inválida: debe tener 9 dígitos.')
       return
     }
-    if (!telefonoRegex.test(telefono)) {
-      alert('Teléfono inválido: formato debe ser 8888-0000.')
-      return
-    }
     if (profs.some(p => p.cedula === cedula)) {
       alert('Ya existe un profesor con esa cédula.')
       return
     }
+
     try {
-      await createProfesor({
+      const password = Math.random().toString(36).slice(-8) // Autogenerate password
+      const newProfessor = {
         cedula,
         nombre,
-        correo: email,
-        telefono,
-      })
+        apellidos,
+        correo,
+        password,
+        isAdmin: false,
+        estado: 'activo',
+      }
+      await createProfesor(newProfessor)
       const entry: Professor = {
         id: String(profs.length + 1),
         cedula,
         nombre,
-        email,
-        telefono,
+        apellidos,
+        correo,
+        password,
+        isAdmin: false,
+        estado: 'activo',
       }
       setProfs(prev => [...prev, entry])
-      setNewProf({ cedula: '', nombre: '', email: '', telefono: '' })
-      alert('Profesor agregado correctamente.')
-    } catch (err) {
+      setNewProf({ cedula: '', nombre: '', apellidos: '', correo: '' })
+      alert(`Profesor agregado correctamente.\nContraseña: ${password}`)
+    } catch {
       alert('Error al agregar profesor.')
+    }
+  }
+
+  // Editar profesor
+  const handleEdit = (idx: number) => {
+    setEditingIndex(idx)
+    setEditingProf({ ...profs[idx] })
+  }
+
+  const saveEdit = async () => {
+    if (editingIndex === null || !editingProf) return
+    try {
+      await updateProfesor(editingProf.id, {
+        id: editingProf.id,
+        cedula: editingProf.cedula,
+        nombre: editingProf.nombre,
+        apellidos: editingProf.apellidos,
+        correo: editingProf.correo,
+        estado: editingProf.estado,
+        password: '',
+        isAdmin: editingProf.isAdmin,
+      })
+      const updatedProfs = await getProfesores()
+      setProfs(updatedProfs)
+      setEditingIndex(null)
+      setEditingProf(null)
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        alert('Error: Profesor no encontrado.')
+        setEditingIndex(null)
+        setEditingProf(null)
+        const updatedProfs = await getProfesores()
+        setProfs(updatedProfs)
+      } 
+      else if (error.response?.status === 400) {
+        alert('Error: Profesor no encontrado.')
+        setEditingIndex(null)
+        setEditingProf(null)
+        const updatedProfs = await getProfesores()
+        setProfs(updatedProfs)
+      }
+      else {
+        alert('Error al editar profesor.')
+      }
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingIndex(null)
+    setEditingProf(null)
+  }
+
+  // Habilitar / Deshabilitar profesor
+  const toggleDisabled = async (idx: number) => {
+    const prof = profs[idx]
+    if (!prof.id) return
+    try {
+      await toggleProfesorState(prof.id)
+      const updatedProfs = await getProfesores()
+      setProfs(updatedProfs)
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        alert('Error: Profesor no encontrado.')
+        const updatedProfs = await getProfesores()
+        setProfs(updatedProfs)
+      } else {
+        alert('Error al cambiar estado del profesor.')
+      }
     }
   }
 
@@ -99,22 +200,8 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
     setLoading(true)
     // Cargar profesores cada vez que reloadKey cambie
     getProfesores()
-      .then((data) => {
-        // Soporta respuesta { profesores: [...] } o array directo
-        const arr = Array.isArray(data) ? data : data.profesores ?? []
-        if (!Array.isArray(arr) || arr.length === 0) {
-          setProfs([])
-        } else {
-          setProfs(
-            arr.map((p: any, idx: number) => ({
-              id: p.id?.toString() ?? (idx + 1).toString(),
-              cedula: p.cedula,
-              nombre: p.nombre,
-              email: p.correo,
-              telefono: p.telefono,
-            }))
-          )
-        }
+      .then((data: Professor[]) => {
+        setProfs(data)
       })
       .catch(() => setProfs([]))
       .finally(() => setLoading(false))
@@ -148,19 +235,19 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
           </div>
           <div className="col">
             <input
-              name="email"
-              value={newProf.email}
+              name="apellidos"
+              value={newProf.apellidos}
               onChange={handleManualChange}
-              placeholder="Correo electrónico"
+              placeholder="Apellidos"
               className="form-control"
             />
           </div>
           <div className="col">
             <input
-              name="telefono"
-              value={newProf.telefono}
+              name="correo"
+              value={newProf.correo}
               onChange={handleManualChange}
-              placeholder="Teléfono (8888-0000)"
+              placeholder="Correo electrónico"
               className="form-control"
             />
           </div>
@@ -172,56 +259,113 @@ const ProfessorManager: React.FC<{ reloadKey?: number }> = ({ reloadKey }) => {
         </div>
       </div>
 
-      {/* Temporarily disabled Excel import
-      <div className="mb-4">
-        <h5>Importar desde Excel</h5>
-        <ExcelUploader onFileSelect={handleFileSelect} />
-        {selectedFile && (
-          <div className="mt-2">
-            <span>Archivo listo: {selectedFile.name}</span>{' '}
-            <button className="btn btn-success btn-sm ms-2" onClick={confirmImport}>
-              Confirmar importación
-            </button>
-          </div>
-        )}
-      </div>
-      */}
-
       {/* Tabla Profesores */}
       <table className="table table-striped">
         <thead>
           <tr>
             <th>Cédula</th>
             <th>Nombre</th>
-            <th>Email</th>
-            <th>Teléfono</th>
+            <th>Apellidos</th>
+            <th>Correo</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={4} className="text-center text-muted">
+              <td colSpan={5} className="text-center text-muted">
                 Cargando...
               </td>
             </tr>
           ) : profs.length > 0 ? (
-            profs.map(p => (
-              <tr key={p.id}>
+            profs.map((p, i) => (
+              <tr key={p.id} className={p.estado === 'inactivo' ? 'opacity-50' : ''}>
                 <td>{p.cedula}</td>
                 <td>{p.nombre}</td>
-                <td>{p.email}</td>
-                <td>{p.telefono}</td>
+                <td>{p.apellidos}</td>
+                <td>{p.correo}</td>
+                <td>
+                  <button className="btn btn-sm btn-primary me-1" onClick={() => handleEdit(i)}>
+                    Editar
+                  </button>
+                  <button
+                    className={`btn btn-sm ${p.estado === 'inactivo' ? 'btn-success' : 'btn-danger'}`}
+                    onClick={() => toggleDisabled(i)}
+                  >
+                    {p.estado === 'inactivo' ? 'Habilitar' : 'Deshabilitar'}
+                  </button>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={4} className="text-center text-muted">
+              <td colSpan={5} className="text-center text-muted">
                 Sin profesores
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      {/* Modal de edición */}
+      {editingIndex !== null && editingProf && (
+        <div style={overlayStyle}>
+          <div style={modalStyle}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5>Editar Profesor</h5>
+              <button className="btn btn-sm btn-secondary" onClick={cancelEdit}>
+                X
+              </button>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Cédula</label>
+              <input
+                type="text"
+                className="form-control"
+                value={editingProf.cedula}
+                onChange={e => setEditingProf({ ...editingProf, cedula: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Nombre</label>
+              <input
+                type="text"
+                className="form-control"
+                value={editingProf.nombre}
+                onChange={e => setEditingProf({ ...editingProf, nombre: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Apellidos</label>
+              <input
+                type="text"
+                className="form-control"
+                value={editingProf.apellidos}
+                onChange={e => setEditingProf({ ...editingProf, apellidos: e.target.value })}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Correo</label>
+              <input
+                type="email"
+                className="form-control"
+                value={editingProf.correo}
+                onChange={e => setEditingProf({ ...editingProf, correo: e.target.value })}
+              />
+            </div>
+
+            <div className="d-flex justify-content-end mt-4">
+              <button className="btn btn-secondary me-2" onClick={cancelEdit}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={saveEdit}>
+                Guardar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

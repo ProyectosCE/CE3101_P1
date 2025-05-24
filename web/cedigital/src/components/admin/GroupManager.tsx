@@ -9,6 +9,7 @@ import {
 } from '@/Functions/groupCourseApi'
 
 interface GroupEntry {
+  id: string
   courseCode: string
   groupNumber: string
   professorIds: string[]
@@ -30,6 +31,7 @@ const GroupManager: React.FC = () => {
   const [showForm, setShowForm] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [newGroup, setNewGroup] = useState<GroupEntry>({
+    id: '',
     courseCode: '',
     groupNumber: '',
     professorIds: [''],
@@ -89,6 +91,7 @@ const GroupManager: React.FC = () => {
 
   const resetForm = () => {
     setNewGroup({
+      id: '',
       courseCode: '',
       groupNumber: '',
       professorIds: [''],
@@ -99,10 +102,38 @@ const GroupManager: React.FC = () => {
     setShowForm(false)
   }
 
-  const createGroup = () => {
-    if (!allFieldsFilled(newGroup)) return
-    setCreatedGroups([...createdGroups, newGroup])
-    resetForm()
+  const createGp = async () => {
+    if (!allFieldsFilled(newGroup)) return;
+    try {
+      await createGroup(
+        newGroup.professorIds,
+        newGroup.year.toString(),
+        newGroup.semesterId,
+        {
+          numero_grupo: newGroup.groupNumber,
+          estado: 'activo',
+          codigo_curso: newGroup.courseCode,
+        }
+      );
+      const updatedGroups = await getGroups();
+      setCreatedGroups(
+        updatedGroups.map((g: any) => ({
+          id: g.id_grupo,
+          courseCode: g.codigo_curso,
+          groupNumber: g.numero_grupo,
+          professorIds: (g.profesores || []).map((p: any) => p.cedula),
+          disabled: g.estado === 'inactivo',
+          semesterId: g.semestre.periodo,
+          year: Number(g.semestre.anio),
+          profesores: Array.isArray(g.profesores) ? g.profesores : [],
+        }))
+      );
+      resetForm()
+    }
+    catch (error) { 
+      alert('Error al crear escuela');
+    }
+    
   }
 
   // Cargar grupos desde el backend
@@ -113,13 +144,14 @@ const GroupManager: React.FC = () => {
         // Soporta respuesta { groups: [...] } o array directo
         const arr = Array.isArray(data) ? data : data.groups ?? []
         setCreatedGroups(
-          arr.map((g: any, idx: number) => ({
-            courseCode: g.courseCode,
-            groupNumber: g.groupNumber,
+          arr.map((g: any) => ({
+            id: g.id_grupo,
+            courseCode: g.codigo_curso,
+            groupNumber: g.numero_grupo,
             professorIds: (g.profesores || []).map((p: any) => p.cedula),
-            disabled: g.deshabilitado || g.disabled,
-            semesterId: g.periodo,
-            year: Number(g.annio),
+            disabled: g.estado === 'inactivo',
+            semesterId: g.semestre.periodo,
+            year: Number(g.semestre.anio),
             profesores: Array.isArray(g.profesores) ? g.profesores : [], // Siempre array
           }))
         )
@@ -205,19 +237,87 @@ const GroupManager: React.FC = () => {
     })
   }
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingIndex === null || !editingGroup) return
-    const copy = [...createdGroups]
-    copy[editingIndex] = editingGroup
-    setCreatedGroups(copy)
-    setEditingIndex(null)
-    setEditingGroup(null)
+    try{
+      await updateGroup(
+        createdGroups[editingIndex].id!,
+        editingGroup.professorIds, // Just pass the array of IDs
+        editingGroup.year.toString(),
+        editingGroup.semesterId,
+        {
+          id_grupo: createdGroups[editingIndex].id,
+          codigo_curso: editingGroup.courseCode,
+          numero_grupo: editingGroup.groupNumber,
+          estado: createdGroups[editingIndex].disabled ? 'inactivo' : 'activo',
+        },
+      );
+      const updatedGroups = await getGroups();
+      setCreatedGroups(
+        updatedGroups.map((g: any) => ({
+          id: g.id_grupo,
+          courseCode: g.codigo_curso,
+          groupNumber: g.numero_grupo,
+          professorIds: (g.profesores || []).map((p: any) => p.cedula),
+          disabled: g.estado === 'inactivo',
+          semesterId: g.semestre.periodo,
+          year: Number(g.semestre.anio),
+          profesores: Array.isArray(g.profesores) ? g.profesores : [],
+        }))
+      );
+      setEditingIndex(null)
+      setEditingGroup(null)
+    }
+    catch{
+      alert('Error al guardar los cambios del grupo.')
+      setEditingIndex(null)
+      setEditingGroup(null)
+    }
+    
   }
 
   const cancelEdit = () => {
     setEditingIndex(null)
     setEditingGroup(null)
   }
+
+  const handleToggle = async (group: GroupEntry) => {
+    try {
+      await toggleGroup(group.id);
+      const updatedGroups = await getGroups();
+      setCreatedGroups(
+        updatedGroups.map((g: any) => ({
+          id: g.id_grupo,
+          courseCode: g.codigo_curso,
+          groupNumber: g.numero_grupo,
+          professorIds: (g.profesores || []).map((p: any) => p.cedula),
+          disabled: g.estado === 'inactivo',
+          semesterId: g.semestre.periodo,
+          year: Number(g.semestre.anio),
+          profesores: Array.isArray(g.profesores) ? g.profesores : [],
+        }))
+      );
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        alert('Error: Grupo no encontrado.');
+        const updatedGroups = await getGroups();
+        setCreatedGroups(
+          updatedGroups.map((g: any) => ({
+            id: g.id_grupo,
+            courseCode: g.codigo_curso,
+            groupNumber: g.numero_grupo,
+            professorIds: (g.profesores || []).map((p: any) => p.cedula),
+            disabled: g.estado === 'inactivo',
+            semesterId: g.semestre.periodo,
+            year: Number(g.semestre.anio),
+            profesores: Array.isArray(g.profesores) ? g.profesores : [],
+          }))
+        );
+      } else {
+        alert('Error al cambiar estado del grupo.');
+      }
+    }
+  };
 
   return (
     <div>
@@ -350,7 +450,7 @@ const GroupManager: React.FC = () => {
           <button
             className="btn btn-success"
             disabled={!allFieldsFilled(newGroup)}
-            onClick={createGroup}
+            onClick={createGp}
           >
             Crear Grupo
           </button>
@@ -408,13 +508,13 @@ const GroupManager: React.FC = () => {
                   <button
                     className="btn btn-sm btn-primary me-1"
                     onClick={() => handleEdit(i)}
-                    disabled={group.disabled}
+                    //disabled={group.disabled}
                   >
                     Editar
                   </button>
                   <button
                     className={`btn btn-sm ${group.disabled ? 'btn-success' : 'btn-danger'}`}
-                    onClick={() => {/* TODO: Implement toggle */}}
+                    onClick={() => handleToggle(group)}
                   >
                     {group.disabled ? 'Habilitar' : 'Deshabilitar'}
                   </button>
@@ -451,8 +551,8 @@ const GroupManager: React.FC = () => {
                 <tr>
                   <th>Cédula</th>
                   <th>Nombre</th>
+                  <th>Apellidos</th>
                   <th>Correo</th>
-                  <th>Teléfono</th>
                 </tr>
               </thead>
               <tbody>
@@ -460,8 +560,8 @@ const GroupManager: React.FC = () => {
                   <tr key={idx}>
                     <td>{p.cedula}</td>
                     <td>{p.nombre}</td>
+                    <td>{p.apellidos}</td>
                     <td>{p.correo}</td>
-                    <td>{p.telefono}</td>
                   </tr>
                 ))}
               </tbody>
