@@ -16,6 +16,7 @@ async function apiRequest<T = any>(
     return response.data;
 }
 
+// Crear estudiante
 export function createEstudiante(estudiante: {
     carnet: string;
     cedula: string;
@@ -26,6 +27,7 @@ export function createEstudiante(estudiante: {
     return apiRequest('post', '/estudiantes', estudiante);
 }
 
+// Actualizar estudiante
 export function updateEstudiante(id: string, data: Partial<{
     carnet: string;
     cedula: string;
@@ -36,10 +38,12 @@ export function updateEstudiante(id: string, data: Partial<{
     return apiRequest('patch', `/estudiantes/${id}`, data);
 }
 
+// Activar/desactivar estudiante
 export function toggleEstudiante(id: string) {
     return apiRequest('patch', `/estudiantes/${id}/toggle`);
 }
 
+// Subir estudiantes por Excel
 export function uploadEstudiantesExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -48,6 +52,12 @@ export function uploadEstudiantesExcel(file: File) {
     });
 }
 
+// Obtener todos los estudiantes
 export function getEstudiantes() {
     return apiRequest('get', '/estudiantes');
+}
+
+// Eliminar estudiante
+export function deleteEstudiante(id: string) {
+    return apiRequest('delete', `/estudiantes/${id}`);
 }

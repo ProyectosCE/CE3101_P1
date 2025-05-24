@@ -16,30 +16,34 @@ async function apiRequest<T = any>(
     return response.data;
 }
 
+// Crear grupo
 export function createGroup(group: {
-    groupNumber: string;
-    annio: string;
+    numero_grupo: string;
+    annio: number;
     periodo: string;
-    courseCode: string;
+    codigo_curso: string;
     profesores: any[];
 }) {
     return apiRequest('post', '/grupos', group);
 }
 
+// Actualizar grupo
 export function updateGroup(id: string, data: Partial<{
-    groupNumber: string;
-    annio: string;
+    numero_grupo: string;
+    annio: number;
     periodo: string;
-    courseCode: string;
+    codigo_curso: string;
     profesores: any[];
 }>) {
     return apiRequest('patch', `/grupos/${id}`, data);
 }
 
+// Activar/desactivar grupo
 export function toggleGroup(id: string) {
     return apiRequest('patch', `/grupos/${id}/toggle`);
 }
 
+// Subir grupos por Excel
 export function uploadGroupsExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -48,6 +52,12 @@ export function uploadGroupsExcel(file: File) {
     });
 }
 
+// Obtener todos los grupos
 export function getGroups() {
     return apiRequest('get', '/grupos');
+}
+
+// Eliminar grupo
+export function deleteGroup(id: string) {
+    return apiRequest('delete', `/grupos/${id}`);
 }

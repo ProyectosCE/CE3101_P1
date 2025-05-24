@@ -17,6 +17,7 @@ async function apiRequest<T = any>(
     return response.data;
 }
 
+// Crear profesor
 export function createProfesor(profesor: {
     cedula: string;
     nombre: string;
@@ -26,6 +27,7 @@ export function createProfesor(profesor: {
     return apiRequest('post', '/profesores', profesor);
 }
 
+// Actualizar profesor
 export function updateProfesor(id: string, data: Partial<{
     cedula: string;
     nombre: string;
@@ -35,10 +37,12 @@ export function updateProfesor(id: string, data: Partial<{
     return apiRequest('patch', `/profesores/${id}`, data);
 }
 
+// Activar/desactivar profesor
 export function toggleProfesor(id: string) {
     return apiRequest('patch', `/profesores/${id}/toggle`);
 }
 
+// Subir profesores por Excel
 export function uploadProfesoresExcel(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -47,6 +51,12 @@ export function uploadProfesoresExcel(file: File) {
     });
 }
 
+// Obtener todos los profesores
 export function getProfesores() {
     return apiRequest('get', '/profesores');
+}
+
+// Eliminar profesor
+export function deleteProfesor(id: string) {
+    return apiRequest('delete', `/profesores/${id}`);
 }
