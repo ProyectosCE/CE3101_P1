@@ -44,7 +44,7 @@ GO
 CREATE TABLE Evaluacion (
     id_evaluacion         INT IDENTITY(1,1) PRIMARY KEY,
     nombre                NVARCHAR(100) NOT NULL,
-    peso                  DECIMAL(5,2) NOT NULL,
+    peso                  FLOAT NOT NULL,
     fecha_entrega         DATETIME NOT NULL,
     tipo                  NVARCHAR(50) NOT NULL,
     archivo_especificacion NVARCHAR(200) NULL,
@@ -108,7 +108,7 @@ GO
 CREATE TABLE Rubro (
     id_rubro          INT IDENTITY(1,1) PRIMARY KEY,
     nombre            NVARCHAR(100) NOT NULL,
-    porcentaje        FLOAT(5,2) NOT NULL,
+    porcentaje        FLOAT NOT NULL,
     id_grupo          INT NOT NULL
 );
 GO

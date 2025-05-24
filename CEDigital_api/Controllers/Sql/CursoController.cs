@@ -46,10 +46,15 @@ namespace CEDigital_api.Controllers.Sql
             if (curso == null)
                 return BadRequest("Curso no puede ser null.");
 
+            // Validate if carrera exists
+            var carreraExists = await _context.Carrera.AnyAsync(c => c.codigo_carrera == curso.codigo_carrera);
+            if (!carreraExists)
+                return BadRequest($"La carrera con código '{curso.codigo_carrera}' no existe.");
+
             await _context.Curso.AddAsync(curso);
             await _context.SaveChangesAsync();
-            // Devuelve 201 Created con la ubicación del recurso creado
-            return CreatedAtAction(nameof(GetCursoById), new { id = curso.codigo_curso }, curso);
+            // Fix: Change 'id' to 'id_curso' to match the parameter name in GetCursoById
+            return CreatedAtAction(nameof(GetCursoById), new { id_curso = curso.codigo_curso }, curso);
         }
 
         // PATCH: api/curso/{id_curso}
@@ -86,10 +91,18 @@ namespace CEDigital_api.Controllers.Sql
             var curso = await _context.Curso.FindAsync(codigo_curso);
             if (curso == null)
                 return NotFound();
-            curso.estado = curso.estado == "activo" ? "inactivo" : "activo";
-            _context.Entry(curso).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return NoContent();
+
+            try
+            {
+                curso.estado = curso.estado == "activo" ? "inactivo" : "activo";
+                _context.Entry(curso).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+                return Ok(new { status = "Actualizado correctamente" });
+            }
+            catch (Exception)
+            {
+                return BadRequest(new { status = "Error, no se pudo actualizar" });
+            }
         }
 
         // POST api/curso/upload-excel

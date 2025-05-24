@@ -147,6 +147,57 @@ namespace CEDigital_api.Controllers.Sql
 
             return Ok(new { status = "ok" });
         }
+
+        // GET: api/minigrupos/{id_categoria}
+        [HttpGet("categoria/{id_categoria}")]
+        public async Task<IActionResult> GetMiniGruposByCategoria(int id_categoria)
+        {
+            var miniGrupos = await _context.MiniGrupo
+                .Where(mg => mg.id_categoria == id_categoria)
+                .Select(mg => new
+                {
+                    id = mg.id_minigrupo,
+                    nombre = mg.nombre_minigrupo,
+                    idCategoria = mg.id_categoria,
+                    estudiantes = mg.estudiantes.Select(e => e.carnet_estudiante).ToList()
+                })
+                .ToListAsync();
+
+            if (!miniGrupos.Any())
+                return NotFound($"No se encontraron mini grupos para la categoría con id {id_categoria}.");
+
+            var resultado = new List<object>();
+
+            foreach (var grupo in miniGrupos)
+            {
+                var estudiantesDetalles = new List<object>();
+                foreach (var carnet in grupo.estudiantes)
+                {
+                    var estudiante = await _estudianteService.GetByCarnetAsync(carnet);
+                    if (estudiante != null)
+                    {
+                        estudiantesDetalles.Add(new
+                        {
+                            carnet = estudiante.carnet,
+                            nombre = estudiante.nombre,
+                            apellidos = estudiante.apellidos,
+                            correo = estudiante.correo,
+                            telefono = estudiante.telefono
+                        });
+                    }
+                }
+
+                resultado.Add(new
+                {
+                    grupo.id,
+                    grupo.nombre,
+                    grupo.idCategoria,
+                    estudiantes = estudiantesDetalles
+                });
+            }
+
+            return Ok(resultado);
+        }
     }
 // pa arraglar errores
     public class MiniGrupoCreateDto

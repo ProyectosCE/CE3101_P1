@@ -17,6 +17,8 @@ namespace CEDigital_api.Models.Sql
 
         // Fks
         public int id_grupo { get; set; }
+
+        [JsonIgnore]
         public Grupo? grupo { get; set; }
     }
 }

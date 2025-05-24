@@ -22,7 +22,19 @@ namespace CEDigital_api.Controllers.Mongo
         public async Task<ActionResult<List<Estudiante>>> GetAll()
         {
             var estudiantes = await _estudianteService.GetAllAsync();
-            return Ok(estudiantes);
+            var estudiantesSinInfo = estudiantes.Select(e => new
+            {
+                e.Id,
+                e.carnet,
+                e.cedula,
+                e.nombre,
+                e.apellidos,
+                e.nombre_completo,
+                e.correo,
+                e.telefono,
+                e.estado
+            });
+            return Ok(estudiantesSinInfo);
         }
 
         // POST: api/estudiantes
@@ -63,7 +75,17 @@ namespace CEDigital_api.Controllers.Mongo
             if (existente == null)
                 return NotFound();
 
-            await _estudianteService.UpdateByIdAsync(id, estudiante);
+            existente.carnet = estudiante.carnet;
+            existente.cedula = estudiante.cedula;
+            existente.nombre = estudiante.nombre;
+            existente.apellidos = estudiante.apellidos;
+            existente.correo = estudiante.correo;
+            existente.telefono = estudiante.telefono;
+            existente.password = existente.password; // No se actualiza la contraseña aquí
+            existente.estado = estudiante.estado;
+            existente.IsAdmin = estudiante.IsAdmin;
+
+            await _estudianteService.UpdateByIdAsync(id, existente);
 
             return NoContent();
         }

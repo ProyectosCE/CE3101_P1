@@ -8,7 +8,7 @@ namespace CEDigital_api.Models.Sql
         public string estado { get; set; } = "inactivo";
         public string observaciones { get; set; }
         
-        public string? archivo_retro { get; set; }
+        //public string? archivo_retro { get; set; }
 
 
 

@@ -15,6 +15,8 @@ namespace CEDigital_api.Models.Sql
 
         // Foreign Keys
         public int id_grupo { get; set; }
+
+        [JsonIgnore]
         public Grupo? grupo { get; set; }
     }
 }

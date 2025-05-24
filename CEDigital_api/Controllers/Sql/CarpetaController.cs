@@ -78,14 +78,47 @@ namespace CEDigital_api.Controllers.Sql
         [HttpDelete("{id_carpeta}")]
         public async Task<IActionResult> DeleteCarpeta(int id_carpeta)
         {
-            var carpeta = await _context.Carpeta.FindAsync(id_carpeta);
+            var carpeta = await _context.Carpeta
+                .Include(c => c.documentos)
+                .Include(c => c.grupo)
+                .FirstOrDefaultAsync(c => c.id_carpeta == id_carpeta);
+
             if (carpeta == null)
-                return NotFound();
+                return NotFound("Carpeta no encontrada.");
             if (carpeta.cedula_profesor == null)
                 return BadRequest("No se puede eliminar carpeta. Solo si fue creada por un profesor.");
-            _context.Carpeta.Remove(carpeta);
-            await _context.SaveChangesAsync();
-            return NoContent();
+
+            try
+            {
+                // Eliminar documentos de la base de datos
+                _context.Documento.RemoveRange(carpeta.documentos);
+
+                // Eliminar carpeta de la base de datos
+                _context.Carpeta.Remove(carpeta);
+
+                await _context.SaveChangesAsync();
+
+                // Eliminar carpeta física
+                var rutaCarpeta = Path.Combine(
+                    "wwwroot",
+                    "Archivos",
+                    $"Semestre_{carpeta.grupo.id_semestre}",
+                    carpeta.grupo.codigo_curso!,
+                    $"Grupo_{carpeta.grupo.id_grupo}",
+                    $"Carpeta_{carpeta.id_carpeta}_{carpeta.nombre}"
+                );
+
+                if (Directory.Exists(rutaCarpeta))
+                {
+                    Directory.Delete(rutaCarpeta, true); // Elimina la carpeta y su contenido
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al eliminar la carpeta: {ex.Message}");
+            }
         }
 
         //PATCH: api/carpeta/{id_carpeta}

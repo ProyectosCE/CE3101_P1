@@ -16,5 +16,7 @@ namespace CEDigital_api.Models.Sql
         public string carnet_estudiante { get; set; }
         public Estudiante? estudiante { get; set; } 
 
+        public int? archivo_id { get; set; } // Foreign key for Documento
+
     }
 }

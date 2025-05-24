@@ -58,7 +58,7 @@ namespace CEDigital_api.Controllers.Sql
                     fechaEntrega = ent.fecha_entrega.ToString("yyyy-MM-dd"),
                     horaEntrega = ent.fecha_entrega.ToString("HH:mm"),
                     comentario = nota.observaciones,
-                    idDocumentoRetroalimentacion = nota?.archivo_retro,
+                    //idDocumentoRetroalimentacion = nota?.archivo_retro,
                     estado = nota?.estado
                 });
             }
@@ -107,7 +107,7 @@ namespace CEDigital_api.Controllers.Sql
             await archivo.CopyToAsync(stream);
 
             nota.observaciones = form.comentario;
-            nota.archivo_retro = archivo.FileName;
+            //nota.archivo_retro = archivo.FileName;
             _context.Entry(nota).State = EntityState.Modified;
             await _context.SaveChangesAsync();
 
@@ -177,7 +177,7 @@ namespace CEDigital_api.Controllers.Sql
                 idDocumentoEntrega = entrega.archivo,
                 calificacion = nota?.calificacion,
                 comentario = nota?.observaciones,
-                idDocumentoRetroalimentacion = nota?.archivo_retro
+                //idDocumentoRetroalimentacion = nota?.archivo_retro
             });
         }
 
@@ -224,8 +224,31 @@ namespace CEDigital_api.Controllers.Sql
                 idDocumentoEntrega = entrega.archivo,
                 calificacion = nota?.calificacion,
                 comentario = nota?.observaciones,
-                idDocumentoRetroalimentacion = nota?.archivo_retro
+                //idDocumentoRetroalimentacion = nota?.archivo_retro
             });
+        }
+
+        // GET: api/entregas/evaluacion/{idEvaluacion}
+        [HttpGet("evaluacion/{idEvaluacion}")]
+        public async Task<IActionResult> GetEntregasPorEvaluacion(int idEvaluacion)
+        {
+            var entregas = await _context.Entregable
+                .Where(e => e.id_evaluacion == idEvaluacion)
+                .ToListAsync();
+
+            if (!entregas.Any()) return NotFound();
+
+            var result = entregas.Select(ent => new
+            {
+                idEntrega = ent.id_entregable,
+                carnetEstudiante = ent.carnet_estudiante,
+                nombreArchivo = ent.archivo,
+                archivoId = ent.archivo_id, // Ensure correct column usage
+                fechaEntrega = ent.fecha_entrega.ToString("yyyy-MM-dd"),
+                horaEntrega = ent.fecha_entrega.ToString("HH:mm")
+            });
+
+            return Ok(result);
         }
 
         public class CalificacionDto { public double calificacion { get; set; } }

@@ -1,29 +1,29 @@
--- Población para Carrera
+-- Poblaciï¿½n para Carrera
 INSERT INTO Carrera (codigo_carrera, nombre) VALUES
-('CE', 'Escuela de Ingeniería en Computadores'),
-('EE', 'Escuela de Ingeniería en Electrónica'),
+('CE', 'Escuela de Ingenierï¿½a en Computadores'),
+('EE', 'Escuela de Ingenierï¿½a en Electrï¿½nica'),
 ('CI', 'Escuela de Ciencias del Lenguaje'),
 ('CS', 'Escuela de Ciencias Sociales'),
-('MA', 'Escuela de Matemática'),
-('QU', 'Escuela de Química');
+('MA', 'Escuela de Matemï¿½tica'),
+('QU', 'Escuela de Quï¿½mica');
 
 
--- Población para Curso
+-- Poblaciï¿½n para Curso
 INSERT INTO Curso (codigo_curso, nombre, creditos, codigo_carrera) VALUES
-('CI0205', 'Prueba avanzada inglés', 0, 'CI'),
-('MA0101', 'Matemática general', 2, 'MA'),
-('CE1101', 'Introducción a la programación', 3, 'CE'),
+('CI0205', 'Prueba avanzada inglï¿½s', 0, 'CI'),
+('MA0101', 'Matemï¿½tica general', 2, 'MA'),
+('CE1101', 'Introducciï¿½n a la programaciï¿½n', 3, 'CE'),
 ('CE1104', 'Fundamentos de sistemas computacionales', 3, 'CE'),
-('MA1102', 'Cálculo diferencial e integral', 4, 'MA'),
-('MA1403', 'Matemática discreta', 4, 'MA'),
-('QU1102', 'Laboratorio de química básica i', 1, 'QU'),
-('QU1106', 'Química básica i', 3, 'QU');
+('MA1102', 'Cï¿½lculo diferencial e integral', 4, 'MA'),
+('MA1403', 'Matemï¿½tica discreta', 4, 'MA'),
+('QU1102', 'Laboratorio de quï¿½mica bï¿½sica i', 1, 'QU'),
+('QU1106', 'Quï¿½mica bï¿½sica i', 3, 'QU');
 
--- Población para Semestre
+-- Poblaciï¿½n para Semestre
 INSERT INTO Semestre (anio, periodo) VALUES
 (2025, '1');
 
--- Población para Grupo
+-- Poblaciï¿½n para Grupo
 INSERT INTO Grupo (numero_grupo, codigo_curso, id_semestre) VALUES
 (1, 'CE1101', 1),
 (1, 'MA0101', 1),
@@ -41,6 +41,15 @@ DECLARE @id4 INT = (SELECT id_grupo FROM Grupo WHERE numero_grupo = 2 AND codigo
 DECLARE @id5 INT = (SELECT id_grupo FROM Grupo WHERE numero_grupo = 1 AND codigo_curso = 'CI0205' AND id_semestre = 1);
 
 -- Insertar en EstudianteXGrupo para el estudiante
+
+INSERT INTO dbo.Estudiante (carnet_estudiante) VALUES
+('2023060347'),
+('2023207992'),
+('2023166058'),
+('2023107645'),
+('2023150476');
+
+
 INSERT INTO EstudianteXGrupo (id_grupo, carnet_estudiante) VALUES
 (@id1, '2023060347'),
 (@id2, '2023060347'),
@@ -50,6 +59,10 @@ INSERT INTO EstudianteXGrupo (id_grupo, carnet_estudiante) VALUES
 (@id5, '2023166058');
 
 -- Insertar en ProfesorXGrupo para el profesor
+INSERT INTO dbo.Profesor (cedula_profesor) VALUES
+('12345678'),
+('87654321');
+
 INSERT INTO ProfesorXGrupo (cedula_profesor, id_grupo) VALUES
 ('12345678', @id1),
 ('12345678', @id2),
@@ -73,22 +86,22 @@ DECLARE @id_grupo INT = (SELECT id_grupo FROM Grupo WHERE codigo_curso = 'CE1101
 
 INSERT INTO Rubro (nombre, porcentaje, id_grupo) VALUES
 ('Quices', 30.00, @id_grupo),
-('Exámenes', 30.00, @id_grupo),
+('Exï¿½menes', 30.00, @id_grupo),
 ('Proyectos', 40.00, @id_grupo);
 
 INSERT INTO Carpeta (nombre, id_grupo) VALUES
 ('Presentaciones', @id_grupo),
 ('Quices', @id_grupo),
-('Exámenes', @id_grupo),
+('Exï¿½menes', @id_grupo),
 ('Proyectos', @id_grupo);
 
--- 2. Obtener ids de los rubros automáticos
+-- 2. Obtener ids de los rubros automï¿½ticos
 DECLARE @id_rubro_quices INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Quices' AND id_grupo = @id_grupo);
-DECLARE @id_rubro_examenes INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Exámenes' AND id_grupo = @id_grupo);
+DECLARE @id_rubro_examenes INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Exï¿½menes' AND id_grupo = @id_grupo);
 DECLARE @id_rubro_proyectos INT = (SELECT id_rubro FROM Rubro WHERE nombre = 'Proyectos' AND id_grupo = @id_grupo);
 
 INSERT INTO CategoriaGrupo (nombre_categoria, id_grupo) VALUES
-('Teórica', @id_grupo);
+('Teï¿½rica', @id_grupo);
 
 -- 3. Insertar evaluaciones para esos rubros
 INSERT INTO Evaluacion (nombre, peso, fecha_entrega, tipo, archivo_especificacion, id_rubro, id_categoria) VALUES
