@@ -35,63 +35,49 @@ interface EntregasResponse {
 
 // API Functions
 export const entregasApi = {
-  // Get all submissions for a specific evaluation
-  getEntregasByEvaluacion: (evaluacionId: string) =>
-    axios.get<EntregasResponse>(`${API_BASE_URL}/profesor/evaluaciones/${evaluacionId}/entregas`),
+  // CRUD principal
+  getEntregasByEvaluacion: (evaluacionId: number) =>
+    axios.get(`${API_BASE_URL}/entregas?idEvaluacion=${evaluacionId}`),
 
-  // Get all submissions for a rubric
-  getEntregasByRubro: async (rubroId: string) => {
-    const response = await axios.get<{evaluaciones: {id: string}[]}>(
-      `${API_BASE_URL}/profesor/rubros/${rubroId}/evaluaciones`
-    );
-    
-    const entregasPromises = response.data.evaluaciones.map(evaluacion => 
-      axios.get<EntregasResponse>(`${API_BASE_URL}/profesor/evaluaciones/${evaluacion.id}/entregas`)
-    );
-    
-    const entregasResponses = await Promise.all(entregasPromises);
-    return entregasResponses.flatMap(res => res.data.entregas);
-  },
+  getEntregaById: (idEntrega: number) =>
+    axios.get(`${API_BASE_URL}/entregas/${idEntrega}`),
 
   // Update submission grade and feedback
-  updateCalificacion: (entregaId: string, data: {
+  updateCalificacion: (entregaId: number, data: {
     calificacion: number;
     comentario?: string;
   }) =>
-    axios.patch(`${API_BASE_URL}/profesor/entregas/${entregaId}/calificacion`, data),
+    axios.patch(`${API_BASE_URL}/entregas/${entregaId}/calificacion`, data),
 
   // Upload feedback document
-  uploadRetroalimentacion: (entregaId: string, file: File) => {
+  uploadRetroalimentacion: (entregaId: number, file: File, comentario: string) => {
     const formData = new FormData();
-    formData.append('file', file);
-    return axios.post(
-      `${API_BASE_URL}/profesor/entregas/${entregaId}/retroalimentacion`,
+    formData.append('archivo', file);
+    formData.append('comentario', comentario);
+    return axios.patch(
+      `${API_BASE_URL}/entregas/${entregaId}/retroalimentacion`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
   },
 
   // Toggle grade publication status
-  togglePublicacion: (entregaId: string) =>
-    axios.post(`${API_BASE_URL}/profesor/entregas/${entregaId}/publicar`),
+  togglePublicacion: (entregaId: number) =>
+    axios.patch(`${API_BASE_URL}/entregas/${entregaId}/toggle-estado`, {}),
 
   // Download submission file
-  downloadEntrega: (entregaId: string) =>
-    axios.get(`${API_BASE_URL}/profesor/entregas/${entregaId}/documento`, {
+  downloadEntrega: (entregaId: number) =>
+    axios.get(`${API_BASE_URL}/entregas/${entregaId}/download`, {
       responseType: 'blob'
     }),
 
   // Download feedback file
-  downloadRetroalimentacion: (entregaId: string) =>
-    axios.get(`${API_BASE_URL}/profesor/entregas/${entregaId}/retroalimentacion`, {
+  downloadRetroalimentacion: (entregaId: number) =>
+    axios.get(`${API_BASE_URL}/entregas/${entregaId}/retroalimentacion/download`, {
       responseType: 'blob'
     }),
 
   // Helper function to load all submissions for all rubrics
-  getAllEntregas: async () => {
-    const response = await axios.get<EntregasResponse>(
-      `${API_BASE_URL}/profesor/entregas`
-    );
-    return response.data.entregas;
-  }
+  getAllEntregas: () =>
+    axios.get(`${API_BASE_URL}/entregas`).then(res => res.data)
 };
