@@ -23,44 +23,38 @@ export interface Minigroup {
 export const categoryApi = {
     // Get all categories
     getCategories: () => 
-        axios.get<{categorias: Category[]}>(`${API_BASE_URL}/profesor/categorias`),
+        axios.get<{categorias: Category[]}>(`${API_BASE_URL}/categoriagrupo`),
     
     // Create a new category
-    createCategory: (category: Omit<Category, 'id'>) =>
-        axios.post<{categoria: Category}>(`${API_BASE_URL}/profesor/categorias`, category),
+    createCategory: (category: { nombre: string, id_grupo: number }) =>
+        axios.post(`${API_BASE_URL}/categoriagrupo`, category),
     
     // Update an existing category
-    updateCategory: (id: string, data: Partial<Category>) =>
-        axios.patch<{categoria: Category}>(`${API_BASE_URL}/profesor/categorias/${id}`, data),
+    updateCategory: (id: number, data: any) =>
+        axios.patch(`${API_BASE_URL}/categoriagrupo/${id}`, data),
     
     // Delete a category
-    deleteCategory: (id: string) =>
-        axios.delete(`${API_BASE_URL}/profesor/categorias/${id}`)
+    deleteCategory: (id: number) =>
+        axios.delete(`${API_BASE_URL}/categoriagrupo/${id}`)
 };
 
 // API Functions for Minigroups
 export const minigroupApi = {
     // Get all minigroups in a category
-    getMinigroupsByCategory: (categoryId: string) =>
-        axios.get<{minigrupos: Minigroup[]}>(`${API_BASE_URL}/profesor/categorias/${categoryId}/grupos`),
+    getMinigroupsByCategory: (id_categoria: number) =>
+        axios.get(`${API_BASE_URL}/minigrupos/categoria/${id_categoria}`),
     
     // Create a new minigroup
-    createMinigroup: (categoryId: string, minigroup: Omit<Minigroup, 'id'>) =>
-        axios.post<{minigrupo: Minigroup}>(
-            `${API_BASE_URL}/profesor/categorias/${categoryId}/grupos`,
-            minigroup
-        ),
+    createMinigroup: (id_categoria: number, minigroup: any) =>
+        axios.post(`${API_BASE_URL}/minigrupos`, { ...minigroup, id_categoria }),
     
     // Update an existing minigroup
-    updateMinigroup: (categoryId: string, groupId: string, data: Partial<Minigroup>) =>
-        axios.patch<{minigrupo: Minigroup}>(
-            `${API_BASE_URL}/profesor/categorias/${categoryId}/grupos/${groupId}`,
-            data
-        ),
+    updateMinigroup: (id_categoria: number, id_minigrupo: number, data: any) =>
+        axios.patch(`${API_BASE_URL}/minigrupos/${id_minigrupo}`, data),
     
     // Delete a minigroup
-    deleteMinigroup: (categoryId: string, groupId: string) =>
-        axios.delete(`${API_BASE_URL}/profesor/categorias/${categoryId}/grupos/${groupId}`),
+    deleteMinigroup: (id_categoria: number, id_minigrupo: number) =>
+        axios.delete(`${API_BASE_URL}/minigrupos/${id_minigrupo}`),
     
     // Student management in minigroups
     addStudentToMinigroup: (categoryId: string, groupId: string, carnet: string) =>

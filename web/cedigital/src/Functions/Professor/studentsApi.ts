@@ -38,3 +38,15 @@ export const getAllStudentsByCourse = async (courseId: string): Promise<GroupStu
   const response = await axios.get<StudentsResponse>(`${BASE_URL}/courses/${courseId}/students`);
   return response.data.students.map(convertToGroupStudent);
 };
+
+// Obtener todos los estudiantes
+export const getAllStudents = async () => {
+  const response = await axios.get(`${API_BASE_URL}/estudiantes`);
+  return response.data;
+};
+
+// Obtener estudiantes por grupo
+export const getStudentsByGroup = async (id_grupo: number) => {
+  const response = await axios.get(`${API_BASE_URL}/grupo/${id_grupo}/estudiantes`);
+  return response.data;
+};
