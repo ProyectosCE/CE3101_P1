@@ -191,18 +191,23 @@ const GroupManager: React.FC = () => {
   }, {} as Record<string, GroupEntry[]>)
 
   // Filter groups based on search
-  const filteredGroupsByCourse = Object.entries(groupsByCourse)
-    .filter(([courseCode, groups]) => 
-      courseCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      groups.some(g => 
-        g.groupNumber.includes(searchQuery) ||
-        g.professorIds.some(id => id.includes(searchQuery))
+  const filteredGroups = createdGroups.filter(group => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      group.year.toString().includes(searchQuery) ||
+      group.semesterId.toLowerCase().includes(searchLower) ||
+      group.courseCode.toLowerCase().includes(searchLower) ||
+      group.groupNumber.toString().includes(searchQuery) ||
+      // Search in professors array
+      group.profesores.some(prof => 
+        prof.cedula.toLowerCase().includes(searchLower)
+      ) ||
+      // Also search in professorIds array as fallback
+      group.professorIds.some(id => 
+        id.toLowerCase().includes(searchLower)
       )
-    )
-    .reduce((acc, [courseCode, groups]) => {
-      acc[courseCode] = groups
-      return acc
-    }, {} as Record<string, GroupEntry[]>)
+    );
+  });
 
   const handleEdit = (idx: number) => {
     setEditingIndex(idx)
@@ -341,7 +346,7 @@ const GroupManager: React.FC = () => {
         <input
           type="text"
           className="form-control"
-          placeholder="Buscar grupos..."
+          placeholder="Buscar por: año, periodo, curso, número de grupo o cédula de profesor..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -477,8 +482,8 @@ const GroupManager: React.FC = () => {
                 Cargando...
               </td>
             </tr>
-          ) : createdGroups.length > 0 ? (
-            createdGroups.map((group, i) => (
+          ) : filteredGroups.length > 0 ? (
+            filteredGroups.map((group, i) => (
               <tr key={i} className={group.disabled ? 'opacity-50' : ''}>
                 <td>{group.groupNumber}</td>
                 <td>{group.courseCode}</td>
@@ -675,7 +680,7 @@ const GroupManager: React.FC = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default GroupManager
+export default GroupManager;

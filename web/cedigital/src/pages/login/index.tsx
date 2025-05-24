@@ -12,11 +12,7 @@ const LoginPage: NextPage = () => {
   useEffect(() => {
     checkExpiration()
     if (isAuthenticated && user) {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
         router.push('/main')
-      }
     }
   }, [isAuthenticated, user, router])
 

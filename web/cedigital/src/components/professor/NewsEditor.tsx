@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash, FaTimes, FaEye } from 'react-icons/fa'
 import { getNews, createNews, updateNews, deleteNews } from '@/Functions/Professor/newsAPI'
+import { useAuthStore } from '@/stores/authStore'
 
 interface NewsItem {
   id: string
   title: string
   message: string
   date: string
-  author: string
-  authorId: string
+  author: string // This will now store the cedula
 }
 
-const NewsEditor: React.FC = () => {
+interface newsEditorProps {
+  groupId?: string
+}
+
+const NewsEditor: React.FC<newsEditorProps> = ({groupId}) => {
   const [newsList, setNewsList] = useState<NewsItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [viewing, setViewing] = useState<NewsItem | null>(null)
@@ -20,18 +24,19 @@ const NewsEditor: React.FC = () => {
   const [message, setMessage] = useState('')
   const [date, setDate] = useState('')
   const [author, setAuthor] = useState('')
+  const grupoIdNumber = groupId ? Number(groupId) : 0
+  const user = useAuthStore((state) => state.user)
 
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const newsData = await getNews();
+        const newsData = await getNews(grupoIdNumber);
         const formattedNews = newsData.map(n => ({
           id: n.id,
           title: n.titulo,
           message: n.cuerpo,
           date: n.fecha,
-          author: n.autor.nombre,
-          authorId: n.autor.id,
+          author: n.autor, // Store the cedula directly
         }));
         setNewsList(formattedNews);
       } catch (error) {
@@ -70,32 +75,33 @@ const NewsEditor: React.FC = () => {
     }
 
     try {
+      const username = user?.username // You'll need to get this from your auth context
       if (editing) {
-        await updateNews(editing.id, {
+        await updateNews(Number(editing.id), {
+          id_noticia: Number(editing.id),
           titulo: title,
-          cuerpo: message,
-          fecha: date,
-          autorId: author,
-          cursoId: '1' // TODO: Get actual course ID
+          mensaje : message,
+          fecha_publicacion: date,
+          cedula_profesor: username,
+          id_grupo: grupoIdNumber.toString()
         });
       } else {
         await createNews({
           titulo: title,
-          cuerpo: message,
-          fecha: date,
-          autorId: author,
-          cursoId: '1' // TODO: Get actual course ID
+          mensaje: message,
+          fecha_publicacion: date,
+          cedula_profesor: username,
+          id_grupo: grupoIdNumber.toString()
         });
       }
       // Refresh news list
-      const newsData = await getNews();
+      const newsData = await getNews(grupoIdNumber);
       const formattedNews = newsData.map(n => ({
         id: n.id,
         title: n.titulo,
         message: n.cuerpo,
         date: n.fecha,
-        author: n.autor.nombre,
-        authorId: n.autor.id,
+        author: n.autor, // Store the cedula directly
       }));
       setNewsList(formattedNews);
       setModalOpen(false);
@@ -235,12 +241,13 @@ const NewsEditor: React.FC = () => {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label">Autor</label>
+                <label className="form-label">Cédula del Profesor</label>
                 <input
                   type="text"
                   className="form-control"
-                  value={author}
-                  onChange={e => setAuthor(e.target.value)}
+                  value={user?.username || ''}
+                  disabled
+                  readOnly
                 />
               </div>
             </div>

@@ -1,7 +1,6 @@
 export interface Student {
   carnet: string
-  apellido1: string
-  apellido2: string
+  apellidos: string
   nombre: string
 }
 

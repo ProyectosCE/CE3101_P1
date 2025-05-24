@@ -11,17 +11,17 @@ export interface Student {
 }
 
 interface ReportStudentsProps {
-  courseId: string
+  groupId: string
 }
 
-const ReportStudents: React.FC<ReportStudentsProps> = ({ courseId }) => {
+const ReportStudents: React.FC<ReportStudentsProps> = ({ groupId }) => {
   const [students, setStudents] = useState<Student[]>([])
   const tableRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const data = await getStudentsByCourse(courseId)
+        const data = await getStudentsByCourse(groupId)
         setStudents(data)
       } catch (error) {
         console.error('Error fetching students:', error)
@@ -29,7 +29,7 @@ const ReportStudents: React.FC<ReportStudentsProps> = ({ courseId }) => {
       }
     }
     fetchStudents()
-  }, [courseId])
+  }, [groupId])
 
   const handleExportPdf = async () => {
     if (!tableRef.current) return

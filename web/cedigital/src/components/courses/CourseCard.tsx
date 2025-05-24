@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRouter } from 'next/router'
-import { Course } from '../../types/course'
+import { Course, UserGroup } from '../../types/course'
 
 interface CourseCardProps {
   course: Course
@@ -11,7 +11,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, semesterId }) => {
   const router = useRouter()
 
   const handleClick = () => {
-    router.push(`/courses/${semesterId}/${course.code}/${course.group}/documents`)
+    router.push(`/courses/${semesterId}/${course.code}/${course.group}/${course.group_id}/documents`)
   }
 
   return (

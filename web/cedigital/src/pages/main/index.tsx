@@ -9,12 +9,20 @@ const Main: React.FC = () => {
   const user = useAuthStore((state) => state.user)
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return;
     setLoading(true)
+    setError(null)
     getUserGroups(user.username)
-      .then((groups: UserGroup[]) => {
+      .then((response) => {
+        if (response.error) {
+          setError(response.error);
+          setSemesters([]);
+          return;
+        }
+        const groups = response.data!;
         const semesterGroups = groups.reduce((acc: Record<string, Semester>, group) => {
           const semesterId = `${group.semestre.periodo}-${group.semestre.anio}`;
           if (!acc[semesterId]) {
@@ -30,6 +38,7 @@ const Main: React.FC = () => {
             code: group.codigo_curso,
             name: group.nombre_curso,
             group: group.numero_grupo,
+            group_id: group.id_grupo,
             professor: `${group.profesor.nombre} ${group.profesor.apellidos}`
           });
           
@@ -37,10 +46,6 @@ const Main: React.FC = () => {
         }, {});
 
         setSemesters(Object.values(semesterGroups));
-      })
-      .catch(error => {
-        console.error('Error loading groups:', error)
-        setSemesters([])
       })
       .finally(() => setLoading(false))
   }, [user])
@@ -53,6 +58,8 @@ const Main: React.FC = () => {
       <div className="container py-4">
         {loading ? (
           <div className="text-center">Cargando grupos...</div>
+        ) : error ? (
+          <div className="text-center text-danger">{error}</div>
         ) : semesters.length > 0 ? (
           semesters.map(semester => (
             <SemesterSection key={semester.id} semester={semester} />

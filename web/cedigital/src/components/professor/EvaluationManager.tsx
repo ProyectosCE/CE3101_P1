@@ -6,18 +6,20 @@ import SubmissionManager from './evaluations/SubmissionManager'
 
 type TabType = 'rubrics' | 'assignments' | 'submissions'
 
-const EvaluationManager: React.FC = () => {
+interface EvaluationManagerProps {
+  groupId?: string
+}
+
+
+const EvaluationManager: React.FC<EvaluationManagerProps> = ({groupId}) => {
   const router = useRouter()
-  const { semester, code, group, tab, tabEv = 'rubrics' } = router.query
+  const currentGroupId = groupId
+  const { semester, code, group, tab, id_curso, tabEv = 'rubrics' } = router.query
 
   const handleTabChange = (newTab: TabType) => {
     router.push({
-      pathname: `/courses/[semester]/[code]/[group]/[tab]`,
+      pathname: `/courses/${semester}/${code}/${group}/${id_curso}/${tab}`,
       query: { 
-        semester, 
-        code, 
-        group, 
-        tab: 'rubrics',
         tabEv: newTab 
       }
     }, undefined, { shallow: true })
@@ -53,9 +55,9 @@ const EvaluationManager: React.FC = () => {
       </ul>
 
       <div className="tab-content">
-        {tabEv === 'rubrics' && <RubricList />}
-        {tabEv === 'assignments' && <AssignmentManager />}
-        {tabEv === 'submissions' && <SubmissionManager />}
+        {tabEv === 'rubrics' && <RubricList groupId={currentGroupId} />}
+        {tabEv === 'assignments' && <AssignmentManager groupId={currentGroupId} />}
+        {tabEv === 'submissions' && <SubmissionManager groupId={currentGroupId} />}
       </div>
     </div>
   )

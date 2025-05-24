@@ -2,6 +2,7 @@ export interface Course {
   code: string
   name: string
   group: number // Changed from string to number
+  group_id: number
   professor: string
 }
 

@@ -94,12 +94,17 @@ const EvaluationDetailModal: React.FC<EvaluationDetailProps> = ({
                 <strong>Entrega:</strong>
                 {evalItem.submitted ? (
                   <div>
-                    <a href={evalItem.fileUrl} download className="btn btn-success btn-sm me-2">{evalItem.fileName}</a>
-                    <span>Entregado el {evalItem.dateSubmitted}</span>
+                    <span className="badge bg-success me-2">Entregado</span>
+                    {evalItem.fileName && (
+                      <span className="me-2">{evalItem.fileName}</span>
+                    )}
+                    {evalItem.dateSubmitted && (
+                      <span className="text-muted">Entregado el {evalItem.dateSubmitted}</span>
+                    )}
                   </div>
                 ) : (
                   <div>
-                    <input type="file" className="form-control" />
+                    <span className="badge bg-secondary">Sin entregar</span>
                   </div>
                 )}
               </div>

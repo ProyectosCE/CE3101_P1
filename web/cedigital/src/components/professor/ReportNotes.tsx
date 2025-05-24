@@ -25,17 +25,18 @@ interface StudentGrade {
 }
 
 interface ReportNotesProps {
-  courseId: string
+  courseId?: string | null
+  groupId?: string | null
 }
 
-const ReportNotes: React.FC<ReportNotesProps> = ({ courseId }) => {
+const ReportNotes: React.FC<ReportNotesProps> = ({ courseId, groupId }) => {
   const [grades, setGrades] = useState<StudentGrade[]>([])
   const [expandedRubrics, setExpandedRubrics] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const gradesData = await getGrades(courseId)
+        const gradesData = await getGrades(courseId? courseId : '', groupId ? Number(groupId) : 0)
         setGrades(gradesData)
       } catch (error) {
         console.error('Error fetching grades:', error)

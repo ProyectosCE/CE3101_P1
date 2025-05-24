@@ -5,6 +5,7 @@ import type { Assignment, Rubric } from '@/types/evaluation'
 import { evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
 import { categoryApi } from '@/Functions/Professor/groupManagerApi'
 import type { Category } from '@/Functions/Professor/groupManagerApi'
+import { uploadEvaluationInstructions } from '@/Functions/Professor/documentsApi'
 
 interface AssignmentModalProps {
   show: boolean
@@ -12,6 +13,10 @@ interface AssignmentModalProps {
   onSave: (assignment: Assignment) => void
   assignment: Assignment | null
   rubrics: Rubric[]
+  id_grupo: number
+  codigo_curso: string
+  id_semestre: string
+  loading?: boolean
 }
 
 const AssignmentModal: React.FC<AssignmentModalProps> = ({
@@ -20,6 +25,10 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   onSave,
   assignment,
   rubrics,
+  id_grupo,
+  codigo_curso,
+  id_semestre,
+  loading = false
 }) => {
   const [form, setForm] = useState<Assignment>({
     id: '',
@@ -30,8 +39,8 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     dueDate: '',
     dueTime: '',
     isGroupWork: false,
-    instructionsFile: null,
-    groupTypeId: undefined
+    instructionsFile: '',
+    groupTypeId: undefined,
   })
   const [categories, setCategories] = useState<Category[]>([])
 
@@ -53,36 +62,54 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           dueDate: '',
           dueTime: '',
           isGroupWork: false,
-          instructionsFile: null,
+          instructionsFile: '',
           groupTypeId: undefined
         })
       }
 
       // Load categories
-      categoryApi.getCategories()
+      categoryApi.getCategories(id_grupo)
         .then(response => {
-          setCategories(response.data.categorias)
+          const categorias = response.data || [];
+          const mappedCategories = categorias.map((cat: any) => ({
+            id: cat.id_categoria.toString(), // Convert to string since we're using string IDs
+            nombre: cat.nombre_categoria
+          }));
+          setCategories(mappedCategories);
         })
         .catch(error => {
-          console.error('Error loading categories:', error)
+          console.error('Error loading categories:', error);
+          setCategories([]); // Set an empty array if there's an error
         })
     }
   }, [show, assignment])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
-      // Convert Assignment to API format
+      let idDocumentoInstrucciones: number | null = null;
+
+      // Subir archivo si hay uno seleccionado usando uploadEvaluationInstructions
+      if (form.instructionsFile) {
+        const result = await uploadEvaluationInstructions(
+          id_grupo,
+          form.instructionsFile,
+          codigo_curso,
+          id_semestre
+        );
+        idDocumentoInstrucciones = result.id_documento;
+      }
+
+      // El body debe tener exactamente los nombres requeridos por el API
       const apiAssignment = {
-        idRubro: form.rubricId,
         nombreRubro: form.title,
         porcentaje: form.weight,
+        fechaEntrega: `${form.dueDate}T${form.dueTime}:00.000Z`,
         descripcion: form.description,
-        fechaEntrega: form.dueDate,
-        horaEntrega: form.dueTime,
-        trabajoGrupal: form.isGroupWork,
-        idDocumentoInstrucciones: ''
+        idDocumentoInstrucciones: idDocumentoInstrucciones,
+        idRubro: form.rubricId,
+        idcategoria: form.isGroupWork ? (form.groupTypeId ? Number(form.groupTypeId) : null) : null
       }
 
       // Save the assignment
@@ -90,34 +117,28 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
         await evaluacionesApi.updateEvaluacion(form.id, apiAssignment)
       } else {
         const { data } = await evaluacionesApi.createEvaluacion(apiAssignment)
-        form.id = data.evaluacion.id
-      }
-
-      // Handle file upload if present
-      if (form.instructionsFile) {
-        await evaluacionesApi.uploadInstrucciones(form.id, form.instructionsFile)
-      }
-
-      // Handle group category relationship
-      if (form.isGroupWork && form.groupTypeId) {
-        // If there's an existing relationship but category changed, delete old one
-        if (form.linkedCategoryId && form.linkedCategoryId !== form.groupTypeId) {
-          await evaluacionesApi.deleteEvaluacionXGrupo(form.id)
+        if (data?.evaluacion && data.evaluacion.id) {
+          form.id = data.evaluacion.id
+        } else if (data?.id) {
+          form.id = data.id
+        } else {
+          const newId = data?.id || data?.evaluacion_id || data?.evaluacionId
+          if (newId) form.id = newId
         }
-        
-        // Create new relationship if needed
-        if (!form.linkedCategoryId || form.linkedCategoryId !== form.groupTypeId) {
-          await evaluacionesApi.createEvaluacionXGrupo({
-            idEvaluacion: form.id,
-            idCategoria: form.groupTypeId
-          })
-        }
-      } else if (!form.isGroupWork && form.linkedCategoryId) {
-        // Remove relationship if evaluation is no longer group work
-        await evaluacionesApi.deleteEvaluacionXGrupo(form.id)
       }
 
-      onSave(form)
+      // NO USAR createEvaluacionXGrupo, solo usa el mismo createEvaluacion con idcategoria
+      // Ya no se debe llamar a ninguna función adicional para crear la relación grupo-categoría
+
+      // Si se está editando y se quitó la categoría, elimina la relación
+      if (!form.isGroupWork && form.linkedCategoryId) {
+        await evaluacionesApi.updateEvaluacion(form.id, {
+          ...apiAssignment,
+          idcategoria: null
+        })
+      }
+
+      onSave({ ...form, idDocumentoInstrucciones })
     } catch (error) {
       console.error('Error saving assignment:', error)
       alert('Error al guardar la evaluación')
@@ -243,7 +264,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
                   <label className="form-label">Categoría de grupos</label>
                   <select
                     className="form-select"
-                    value={form.groupTypeId || ''}
+                    value={form.groupTypeId || ''} // Ensure correct value is selected
                     onChange={e => setForm(prev => ({ 
                       ...prev, 
                       groupTypeId: e.target.value 
@@ -269,7 +290,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           <button 
             type="submit" 
             className="btn btn-primary"
-            disabled={form.isGroupWork && !form.groupTypeId}
+            disabled={loading || (form.isGroupWork && !form.groupTypeId)}
           >
             Guardar
           </button>

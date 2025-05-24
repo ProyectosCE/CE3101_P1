@@ -1,5 +1,10 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import EvaluationDetailModal from './EvaluationDetailModal'
+import { rubrosApi, evaluacionesApi } from '@/Functions/Professor/evaluationsApi'
+import { entregasApi } from '@/Functions/Professor/entregasApi'
+import { getEntregaEstudiante, getEntregaEstudianteGrupal } from '@/Functions/Professor/gradesAPI'
+import { useRouter } from 'next/router'
+import { useAuthStore } from '@/stores/authStore'
 
 interface GroupMember {
   id: string
@@ -35,107 +40,106 @@ interface Rubro {
   evaluations: EvalItem[]
 }
 
-const dummyProfile = {
-  name: 'Juan Pérez',
-  avatarUrl: '/images/avatar-default.png',
-}
-
-const dummyRubros: Rubro[] = [
-  {
-    id: 'rubro1',
-    name: 'Rubro 1',
-    weight: 40,
-    evaluations: [
-      {
-        id: 'eval1',
-        name: 'Evaluación 1',
-        description: 'Descripción de la evaluación 1',
-        value: 10,
-        rubricEnabled: true,
-        rubricUrl: '/rubrics/rubro1_eval1.pdf',
-        dueDate: '2023-10-10',
-        allowLate: true,
-        groupSize: 2,
-        groupMembers: [
-          { id: '1', name: 'Juan' },
-          { id: '2', name: 'María' },
-        ],
-        submitted: true,
-        fileName: 'evaluacion1_juan_maria.pdf',
-        fileUrl: '/uploads/evaluacion1_juan_maria.pdf',
-        dateSubmitted: '2023-10-01',
-        grade: 8.5,
-        feedback: 'Buen trabajo',
-        feedbackFiles: [
-          { name: 'comentarios.pdf', url: '/uploads/comentarios.pdf' },
-        ],
-        comments: 'Entregado a tiempo',
-      },
-      {
-        id: 'eval2',
-        name: 'Evaluación 2',
-        value: 10,
-        rubricEnabled: false,
-        dueDate: '2023-10-15',
-        allowLate: false,
-        groupSize: 1,
-        submitted: false,
-      },
-    ],
-  },
-  {
-    id: 'rubro2',
-    name: 'Rubro 2',
-    weight: 60,
-    evaluations: [
-      {
-        id: 'eval3',
-        name: 'Evaluación 3',
-        value: 20,
-        rubricEnabled: true,
-        rubricUrl: '/rubrics/rubro2_eval3.pdf',
-        dueDate: '2023-10-20',
-        allowLate: true,
-        groupSize: 3,
-        groupMembers: [
-          { id: '1', name: 'Juan' },
-          { id: '3', name: 'Pedro' },
-          { id: '4', name: 'Ana' },
-        ],
-        submitted: true,
-        fileName: 'evaluacion3_juan_pedro_ana.pdf',
-        fileUrl: '/uploads/evaluacion3_juan_pedro_ana.pdf',
-        dateSubmitted: '2023-10-10',
-        grade: 18,
-        feedback: 'Excelente trabajo',
-        feedbackFiles: [
-          { name: 'rubrica_evaluacion3.pdf', url: '/uploads/rubrica_evaluacion3.pdf' },
-        ],
-        comments: 'Muy bien presentado',
-      },
-      {
-        id: 'eval4',
-        name: 'Evaluación 4',
-        value: 20,
-        rubricEnabled: false,
-        dueDate: '2023-10-25',
-        allowLate: false,
-        groupSize: 1,
-        submitted: false,
-      },
-    ],
-  },
-]
-
 const StudentEvaluations: React.FC = () => {
-  const [rubros, setRubros] = useState<Rubro[]>(dummyRubros)
+  const [rubros, setRubros] = useState<Rubro[]>([])
   const [openRubro, setOpenRubro] = useState<string | null>(null)
   const [selectedEval, setSelectedEval] = useState<EvalItem | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const { id_curso, group } = router.query
+  const groupId = id_curso || group
+  const user = useAuthStore(state => state.user)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!groupId || !user?.username) return
+      setLoading(true)
+      try {
+        // 1. Obtener rubros y evaluaciones
+        const rubrosRes = await rubrosApi.getRubros(Number(groupId))
+        const evaluacionesRes = await evaluacionesApi.getEvaluaciones(Number(groupId))
+
+        // 2. Agrupar evaluaciones por rubro
+        const rubrosWithEvals: Rubro[] = await Promise.all(
+          rubrosRes.data.map(async (rubric: any) => {
+            const rubroEvaluaciones = (evaluacionesRes.data || []).find((r: any) => r.id === rubric.id)
+            const evaluaciones = rubroEvaluaciones?.evaluaciones || []
+
+            // 3. Para cada evaluación, buscar la entrega del estudiante usando las nuevas APIs
+            const evals: EvalItem[] = await Promise.all(
+              evaluaciones.map(async (evaluation: any) => {
+                let entregaEst: any = null
+                let groupMembers: GroupMember[] | undefined = undefined
+                let dateSubmitted: string | undefined = undefined
+
+                if (evaluation.trabajoGrupal) {
+                  try {
+                    entregaEst = await getEntregaEstudianteGrupal(user.username, evaluation.id)
+                    if (entregaEst && Array.isArray(entregaEst.integrantes)) {
+                      groupMembers = entregaEst.integrantes.map((name: string, idx: number) => ({
+                        id: `${idx}`,
+                        name
+                      }))
+                    }
+                  } catch {
+                    entregaEst = null
+                  }
+                } else {
+                  try {
+                    entregaEst = await getEntregaEstudiante(user.username, evaluation.id)
+                  } catch {
+                    entregaEst = null
+                  }
+                }
+
+                // No hay fecha/hora de entrega en el API, pero si existiera, agregar aquí
+                // dateSubmitted = entregaEst?.fechaEntrega || entregaEst?.fecha_entrega
+
+                return {
+                  id: evaluation.id,
+                  name: evaluation.nombre,
+                  description: evaluation.descripcion,
+                  value: evaluation.valor ?? 0,
+                  rubricEnabled: !!evaluation.idRubro,
+                  rubricUrl: evaluation.rubricaUrl || undefined,
+                  dueDate: evaluation.fechaEntrega,
+                  allowLate: evaluation.entregaTardia ?? false,
+                  groupSize: evaluation.trabajoGrupal ? (groupMembers?.length || 2) : 1,
+                  groupMembers,
+                  submitted: !!entregaEst && !!entregaEst.idDocumentoEntrega,
+                  fileName: entregaEst?.idDocumentoEntrega,
+                  fileUrl: undefined,
+                  dateSubmitted,
+                  grade: entregaEst?.calificacion,
+                  feedback: entregaEst?.comentario,
+                  feedbackFiles: [],
+                  comments: entregaEst?.comentario
+                }
+              })
+            )
+
+            return {
+              id: rubric.id,
+              name: rubric.nombre,
+              weight: rubric.porcentaje,
+              evaluations: evals
+            }
+          })
+        )
+        setRubros(rubrosWithEvals)
+      } catch (error) {
+        setRubros([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [groupId, user])
 
   // Nota final ponderada
   const total = rubros.reduce((acc, r) => {
     const rubroTotal = r.evaluations.reduce((sum, ev) => sum + (ev.grade ?? 0), 0)
-    const rubroMax = r.evaluations.reduce((sum, ev) => sum + ev.value, 0)
+    const rubroMax = r.evaluations.reduce((sum, ev) => sum + (ev.value ?? 0), 0)
     return acc + (rubroMax ? (rubroTotal / rubroMax) * r.weight : 0)
   }, 0)
 
@@ -143,9 +147,10 @@ const StudentEvaluations: React.FC = () => {
     <div>
       {/* Perfil estudiante */}
       <div className="d-flex align-items-center mb-4">
-        <img src={dummyProfile.avatarUrl} alt={dummyProfile.name} className="rounded-circle me-3" style={{ width: 60, height: 60 }} />
+        {/* Puedes obtener el nombre/avatar del usuario si lo tienes */}
+        <img src="/images/avatar-default.png" alt="Estudiante" className="rounded-circle me-3" style={{ width: 60, height: 60 }} />
         <div>
-          <div className="fw-bold">{dummyProfile.name}</div>
+          <div className="fw-bold">{user?.nombre || user?.username || 'Estudiante'}</div>
           <div className="text-muted">Estudiante</div>
         </div>
         <div className="ms-auto">
@@ -155,7 +160,9 @@ const StudentEvaluations: React.FC = () => {
 
       {/* Rubros */}
       <div className="accordion" id="rubrosAccordion">
-        {rubros.map(r => (
+        {loading ? (
+          <div className="text-center text-muted mb-3">Cargando...</div>
+        ) : rubros.map(r => (
           <div className="accordion-item" key={r.id}>
             <h2 className="accordion-header" id={`heading-${r.id}`}>
               <button

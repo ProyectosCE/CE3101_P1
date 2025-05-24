@@ -15,7 +15,7 @@ export interface Assignment {
   dueDate: string
   dueTime: string
   isGroupWork: boolean
-  instructionsFile: File | null
+  instructionsFile: string | null
   linkedCategoryId?: string
   groupOption?: 'existing' | 'new'
   groupTypeId?: string

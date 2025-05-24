@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRouter } from 'next/router'
-import { useAuthStore } from '../../../../../../stores/authStore'
+import { useAuthStore } from '@/stores/authStore'
 import Header from '@/components/global/Header'
 import RubricList from '@/components/professor/evaluations/RubricList'
 import AssignmentManager from '@/components/professor/evaluations/AssignmentManager'
@@ -8,7 +8,7 @@ import SubmissionManager from '@/components/professor/evaluations/SubmissionMana
 
 const EvaluationPage = () => {
   const router = useRouter()
-  const { semester, code, group, tabEv } = router.query
+  const { semester, code, group, id_curso, tabEv } = router.query
   const user = useAuthStore(state => state.user)
 
   if (!user || user.role !== 'professor') {
@@ -17,7 +17,7 @@ const EvaluationPage = () => {
   }
 
   const handleTabChange = (newTab: string) => {
-    router.push(`/courses/${semester}/${code}/${group}/rubrics/${newTab}`)
+    router.push(`/courses/${semester}/${code}/${group}/${id_curso}rubrics/${newTab}`)
   }
 
   const renderContent = () => {
